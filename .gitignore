@@ -21,3 +21,4 @@ logs/
 
 # Runtime state: VAPID private key, push subscriptions, user state
 /data/
+auto-update.log
