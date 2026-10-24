@@ -1,0 +1,34 @@
+{
+  "name": "Murid Day Journal",
+  "short_name": "Murid",
+  "description": "Personal Islamic calendar and worship tracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F9F6F2",
+  "theme_color": "#1C7A52",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["lifestyle", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "scope": "/"
+}

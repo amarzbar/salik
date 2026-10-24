@@ -1,0 +1,10 @@
+{
+  "description": "Stay organized with a personal Islamic calendar and worship tracker that helps users manage prayers, fasting, dhikr, and journaling seamlessly.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
