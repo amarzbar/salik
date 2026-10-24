@@ -1,4 +1,4 @@
-const CACHE = 'murid-v9'; // bumped: shorter nav, mini player in dhikr reader
+const CACHE = 'murid-v10'; // bumped: opaque status bar, static nav, smaller nav
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {

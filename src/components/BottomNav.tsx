@@ -85,12 +85,12 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
 
 export default function BottomNav({ active, onSelect }: Props) {
   return (
-    // ~50px of tap area plus part of the iPhone home-indicator inset (the page
-    // uses viewport-fit=cover; the full 34px inset made the bar feel too tall,
-    // and the indicator can sit over the bar's bottom margin without issue).
+    // 46px of tap area plus only enough of the iPhone's 34px home-indicator
+    // inset to keep the labels clear of the indicator (inset - 18px = 16px).
+    // The full inset, or even half of it, made the bar feel too tall.
     <nav
       className="flex items-stretch border-t border-border bg-card"
-      style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) * 0.55)' }}
+      style={{ paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) - 18px), 4px)' }}
     >
       {TABS.map(tab => {
         const isActive = active === tab.id;
@@ -99,14 +99,14 @@ export default function BottomNav({ active, onSelect }: Props) {
             key={tab.id}
             onClick={() => onSelect(tab.id)}
             className={[
-              'flex-1 flex flex-col items-center justify-center gap-0.5 pt-1.5 pb-1 transition-colors min-h-[50px]',
+              'flex-1 flex flex-col items-center justify-center gap-0.5 pt-1.5 pb-0.5 transition-colors min-h-[46px]',
               isActive ? 'text-primary' : 'text-muted-fg',
             ].join(' ')}
             aria-label={tab.label}
             aria-current={isActive ? 'page' : undefined}
           >
             {tab.icon(isActive)}
-            <span className={`text-[10.5px] font-medium ${isActive ? 'text-primary' : 'text-muted-fg'}`}>
+            <span className={`text-[10px] font-medium ${isActive ? 'text-primary' : 'text-muted-fg'}`}>
               {tab.label}
             </span>
           </button>

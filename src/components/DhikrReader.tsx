@@ -147,7 +147,7 @@ function MiniPlayer({ src, title }: { src: string; title: string }) {
   const pct = duration ? (time / duration) * 100 : 0;
 
   return (
-    <div className="bg-card border-t border-border" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) * 0.55)' }}>
+    <div className="bg-card border-t border-border" style={{ paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) - 18px), 4px)' }}>
       <audio
         ref={audioRef}
         src={src}

@@ -62,6 +62,9 @@
 
 html {
   height: 100%;
+  /* No rubber-banding of the page itself: only <main> scrolls, so a pull at
+     the top or bottom must not drag the fixed header/tab bar along with it. */
+  overscroll-behavior: none;
 }
 
 body {
