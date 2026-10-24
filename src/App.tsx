@@ -46,18 +46,24 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     const { darkMode } = state.settings;
+    // The status bar is opaque (status-bar-style "default") and takes its
+    // colour from theme-color, so keep that matched to the page background.
+    const setDark = (dark: boolean) => {
+      root.classList.toggle('dark', dark);
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#141210' : '#F9F6F2');
+    };
 
     if (darkMode === 'dark') {
-      root.classList.add('dark');
+      setDark(true);
       return;
     }
     if (darkMode === 'light') {
-      root.classList.remove('dark');
+      setDark(false);
       return;
     }
     // System
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
-    const apply = (dark: boolean) => dark ? root.classList.add('dark') : root.classList.remove('dark');
+    const apply = (dark: boolean) => setDark(dark);
     apply(mq.matches);
     const handler = (e: MediaQueryListEvent) => apply(e.matches);
     mq.addEventListener('change', handler);
@@ -99,7 +105,7 @@ export default function App() {
       </header>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto overscroll-y-contain">
         {activeTab === 'today'    && <TodayScreen onNavigate={setActiveTab} />}
         {activeTab === 'calendar' && <CalendarScreen />}
         {activeTab === 'prayers'  && <PrayersScreen />}
