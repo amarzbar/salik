@@ -1,4 +1,4 @@
-const CACHE = 'murid-v10'; // bumped: opaque status bar, static nav, smaller nav
+const CACHE = 'murid-v11'; // bumped: theme-color per scheme, iOS 26 viewport guard
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {

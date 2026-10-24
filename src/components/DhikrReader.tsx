@@ -80,7 +80,7 @@ export default function DhikrReader({ textId, onClose }: Props) {
         </button>
         <div className="flex-1 min-w-0">
           <p className="text-[16px] font-semibold text-foreground truncate">{text.title}</p>
-          <p className="font-arabic text-[13px] text-muted-fg truncate">{text.titleAr}</p>
+          <p className="font-arabic text-[13px] text-muted-fg truncate" style={{ textAlign: "left" }}>{text.titleAr}</p>
         </div>
         <button
           onClick={() => setZoomIdx(i => (i + 1) % ZOOMS.length)}
