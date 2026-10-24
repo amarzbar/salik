@@ -1,4 +1,4 @@
-const CACHE = 'murid-v8'; // bumped: Fajr-to-Fajr day, taller nav, dhikr texts reader
+const CACHE = 'murid-v9'; // bumped: shorter nav, mini player in dhikr reader
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {
