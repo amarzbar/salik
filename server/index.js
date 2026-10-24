@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const store = require('./store');
 const push = require('./push');
@@ -49,6 +50,36 @@ app.post('/api/push/test', async (req, res) => {
 });
 
 app.get('/api/health', (req, res) => res.json({ ok: true }));
+
+// ── Dhikr texts (PDFs from shaykhfaisal.com, cached on first open) ──
+// Kept out of the repo: fetched from the Shaykh's site once, then served
+// from the data volume so they still open when the site is slow or down.
+const TEXT_SOURCES = {
+  wirdul_aam: 'https://shaykhfaisal.com/wp-content/uploads/2021/01/AL-WIRDUL-AAM-DHIKR.pdf',
+  salat_taziyyah: 'https://shaykhfaisal.com/wp-content/uploads/2021/01/AL-SALAT-AL-TAAZIYYAH-DHIKR.pdf',
+  hasbunallah: 'https://shaykhfaisal.com/wp-content/uploads/2021/01/HASBUNALLAH-DHIKR.pdf',
+  hizbul_bahr: 'https://shaykhfaisal.com/wp-content/uploads/2021/03/HIZBUL-BAHR-DHIKR.pdf',
+  latifiyyah: 'https://shaykhfaisal.com/wp-content/uploads/2021/01/AL-LATIFIYYAH-DHIKR.pdf',
+  mashishiyyah: 'https://shaykhfaisal.com/wp-content/uploads/2021/03/SALAWAAT-05-AL-SALAT-AL-MASHISHIYYAH-06-Text-Arabic-English-Transliteration.pdf',
+};
+const TEXTS_DIR = path.join(store.DATA_DIR, 'texts');
+
+app.get('/api/texts/:id.pdf', async (req, res) => {
+  const src = TEXT_SOURCES[req.params.id];
+  if (!src) return res.status(404).end();
+  const file = path.join(TEXTS_DIR, `${req.params.id}.pdf`);
+  try {
+    if (!fs.existsSync(file)) {
+      const r = await fetch(src);
+      if (!r.ok) return res.status(502).json({ error: `source returned ${r.status}` });
+      fs.mkdirSync(TEXTS_DIR, { recursive: true });
+      fs.writeFileSync(file, Buffer.from(await r.arrayBuffer()));
+    }
+    res.type('application/pdf').sendFile(file);
+  } catch (err) {
+    res.status(502).json({ error: 'could not fetch text' });
+  }
+});
 
 // ── Static frontend ─────────────────────────────────────────────────
 app.use(express.static(DIST_DIR));

@@ -1,4 +1,4 @@
-const CACHE = 'murid-v7'; // bumped: nav flush to bottom edge, no safe-area padding
+const CACHE = 'murid-v8'; // bumped: Fajr-to-Fajr day, taller nav, dhikr texts reader
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {

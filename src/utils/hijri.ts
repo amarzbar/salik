@@ -96,8 +96,7 @@ function addHijriDays(start: HijriDate, days: number): HijriDate {
   return { year, month, day };
 }
 
-export function todayHijri(): HijriDate {
-  const d = new Date();
+export function todayHijri(d: Date = new Date()): HijriDate {
   return gregorianToHijri(d.getFullYear(), d.getMonth() + 1, d.getDate());
 }
 

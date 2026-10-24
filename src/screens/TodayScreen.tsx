@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { todayHijri, HIJRI_MONTHS, formatHijriDate } from '../utils/hijri';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { nextUpcomingEvent, eventsForDay, EVENT_COLOR_CLASSES } from '../data/islamicEvents';
-import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, type PrayerStatus } from '../store';
 import EventDetailModal from '../components/EventDetailModal';
 import type { IslamicEvent } from '../data/islamicEvents';
 import type { TabId } from '../App';
@@ -41,8 +41,8 @@ interface Props { onNavigate: (tab: TabId) => void; }
 export default function TodayScreen({ onNavigate }: Props) {
   const { state, cyclePrayerStatus, setDhikr, toggleDhikrSub, incSalawat, resetSalawat } = useAppStore();
   const todayK = todayKey();
-  const today = new Date();
-  const hijri = useMemo(() => todayHijri(), []);
+  const today = activeDate();
+  const hijri = useMemo(() => todayHijri(activeDate()), []);
   const loc = resolveLocation(state.settings);
   const times = useMemo(
     () => calcPrayerTimes(today, loc.lat, loc.lng, loc.tz, {

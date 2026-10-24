@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useAppStore, todayKey, toDateKey, dateFromKey } from '../store';
+import { useAppStore, todayKey, activeDate, toDateKey, dateFromKey } from '../store';
 import { gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { PRAYERS, type PrayerStatus } from '../store';
 
@@ -32,7 +32,7 @@ export default function JournalScreen() {
       .sort(([a], [b]) => b.localeCompare(a));
   }, [state.journal, search, todayK]);
 
-  const today = new Date();
+  const today = activeDate();
   const todayHijri = gregorianToHijri(today.getFullYear(), today.getMonth() + 1, today.getDate());
 
   return (
