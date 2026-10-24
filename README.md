@@ -1,4 +1,4 @@
-# Murid Day Journal
+# The Seekers Journal
 
 A personal Islamic calendar and worship tracker for the murid's day: the five
 prayers, the daily awrad, salawat, the Hijri calendar and a short daily journal,
