@@ -11,7 +11,7 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
     id: 'today',
     label: 'Today',
     icon: active => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="4" fill={active ? 'currentColor' : 'none'} strokeWidth={active ? 0 : 1.8}/>
         <line x1="12" y1="2" x2="12" y2="4"/>
@@ -29,7 +29,7 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
     id: 'calendar',
     label: 'Calendar',
     icon: active => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" fill={active ? 'currentColor' : 'none'}
           fillOpacity={active ? 0.12 : 0} strokeWidth={active ? 2 : 1.8}/>
@@ -43,7 +43,7 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
     id: 'prayers',
     label: 'Prayers',
     icon: active => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <path d="M12 3C8 3 5 7 5 11c0 6 7 10 7 10s7-4 7-10c0-4-3-8-7-8z"
           fill={active ? 'currentColor' : 'none'} fillOpacity={active ? 0.15 : 0}/>
@@ -56,7 +56,7 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
     id: 'dhikr',
     label: 'Dhikr',
     icon: active => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <circle cx="5" cy="12" r="1.5" fill={active ? 'currentColor' : 'none'}/>
         <circle cx="12" cy="12" r="1.5" fill={active ? 'currentColor' : 'none'}/>
@@ -71,7 +71,7 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
     id: 'journal',
     label: 'Journal',
     icon: active => (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" strokeWidth={active ? 2 : 1.8}/>
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"
@@ -85,7 +85,9 @@ const TABS: { id: TabId; label: string; icon: (active: boolean) => React.ReactEl
 
 export default function BottomNav({ active, onSelect }: Props) {
   return (
-    <nav className="flex items-stretch border-t border-border bg-card">
+    // Standard tab bar: ~56px of tap area plus the iPhone home-indicator inset
+    // (the page uses viewport-fit=cover, so without it the bar sits under it).
+    <nav className="flex items-stretch border-t border-border bg-card pb-safe">
       {TABS.map(tab => {
         const isActive = active === tab.id;
         return (
@@ -93,13 +95,14 @@ export default function BottomNav({ active, onSelect }: Props) {
             key={tab.id}
             onClick={() => onSelect(tab.id)}
             className={[
-              'flex-1 flex flex-col items-center justify-center gap-0.5 py-1.5 transition-colors min-h-[46px]',
+              'flex-1 flex flex-col items-center justify-center gap-1 pt-2 pb-1.5 transition-colors min-h-[56px]',
               isActive ? 'text-primary' : 'text-muted-fg',
             ].join(' ')}
             aria-label={tab.label}
+            aria-current={isActive ? 'page' : undefined}
           >
             {tab.icon(isActive)}
-            <span className={`text-[10px] font-medium tracking-wide ${isActive ? 'text-primary' : 'text-muted-fg'}`}>
+            <span className={`text-[11px] font-medium ${isActive ? 'text-primary' : 'text-muted-fg'}`}>
               {tab.label}
             </span>
           </button>

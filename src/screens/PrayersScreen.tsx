@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
-import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, toDateKey, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, type PrayerStatus } from '../store';
 import { todayHijri, gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import DayPrayerModal from '../components/DayPrayerModal';
 
@@ -29,7 +29,7 @@ export default function PrayersScreen() {
   const [view, setView] = useState<View>('today');
   const [selectedHistoryDay, setSelectedHistoryDay] = useState<string | null>(null);
   const todayK = todayKey();
-  const today = new Date();
+  const today = activeDate();
   const loc = resolveLocation(state.settings);
   const times = useMemo(
     () => calcPrayerTimes(today, loc.lat, loc.lng, loc.tz, {
@@ -38,7 +38,7 @@ export default function PrayersScreen() {
     }),
     [loc.lat, loc.lng, loc.tz, state.settings.asrMethod, state.settings.angleMethod]
   );
-  const hijri = useMemo(() => todayHijri(), []);
+  const hijri = useMemo(() => todayHijri(activeDate()), []);
   const streak = prayerStreak();
 
   // Last 28 days for heatmap
@@ -204,7 +204,7 @@ export default function PrayersScreen() {
               </div>
               <div className="grid grid-cols-7 gap-1">
                 {heatmapDays.map(({ key, d, rate }) => {
-                  const isToday = toDateKey(new Date()) === key;
+                  const isToday = todayK === key;
                   return (
                     <button
                       key={key}

@@ -159,8 +159,22 @@ export function toDateKey(d: Date): string {
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
+// The app's day runs Fajr to Fajr, not midnight to midnight. Between
+// midnight and Fajr you are still on the previous day, so its Isha is still
+// open and nothing rolls over until the new day's first prayer comes in.
+export function activeDate(now: Date = new Date()): Date {
+  const settings = getState().settings;
+  const loc = resolveLocation(settings);
+  const { fajrH } = calcPrayerTimes(now, loc.lat, loc.lng, loc.tz, {
+    asrMethod: settings.asrMethod,
+    angleMethod: settings.angleMethod,
+  });
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (now.getHours() + now.getMinutes() / 60 < fajrH) d.setDate(d.getDate() - 1);
+  return d;
+}
 export function todayKey(): string {
-  return toDateKey(new Date());
+  return toDateKey(activeDate());
 }
 export function dateFromKey(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
@@ -176,8 +190,8 @@ export function dateFromKey(key: string): Date {
 // IMPORTANT: each prayer's window does NOT run until the *next* prayer's
 // time — Fajr's window closes at sunrise (which can be ~90 min after Fajr),
 // nowhere near Dhuhr. Only Dhuhr/Asr/Maghrib genuinely run until the next
-// prayer's start; Isha runs to the following Fajr, approximated here as
-// midnight (calendar-day rollover already handles "next day = qada").
+// prayer's start; Isha runs to the following Fajr, which is also when the
+// app's day rolls over (see activeDate), so "next day = qada" lines up.
 
 function computeAutoStatus(settings: AppState['settings'], dateKey: string, prayer: PrayerName): PrayerStatus {
   const today = todayKey();
@@ -197,10 +211,11 @@ function computeAutoStatus(settings: AppState['settings'], dateKey: string, pray
     dhuhr: hours.asr,
     asr: hours.maghrib,
     maghrib: hours.isha,
-    isha: 24,
+    isha: 24 + times.fajrH, // next morning's Fajr, close enough to today's
   };
-  const now = new Date();
-  const nowH = now.getHours() + now.getMinutes() / 60;
+  // Hours since the start of dateKey's calendar date, so 1am counts as 25
+  // while it is still the same Fajr-to-Fajr day.
+  const nowH = (Date.now() - dateFromKey(dateKey).getTime()) / 3_600_000;
   return nowH < windowEnd[prayer] ? 'ontime' : 'late';
 }
 
@@ -428,7 +443,7 @@ export function useAppStore() {
 
   const prayerStreak = (): number => {
     let streak = 0;
-    const d = new Date();
+    const d = activeDate();
     for (let i = 0; i < 365; i++) {
       const key = toDateKey(d);
       const day = state.prayers[key] ?? {};
@@ -445,7 +460,7 @@ export function useAppStore() {
 
   const dhikrStreak = (id: DhikrId, subLen?: number): number => {
     let streak = 0;
-    const d = new Date();
+    const d = activeDate();
     for (let i = 0; i < 365; i++) {
       const key = toDateKey(d);
       const val = state.dhikr[key]?.[id];

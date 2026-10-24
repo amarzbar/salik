@@ -1,12 +1,31 @@
-import { useMemo } from 'react';
-import { useAppStore, DHIKR_DEFS, PRAYER_LABELS, todayKey, type DhikrId } from '../store';
+import { lazy, Suspense, useMemo, useState } from 'react';
+import { useAppStore, DHIKR_DEFS, PRAYER_LABELS, todayKey, activeDate, type DhikrId } from '../store';
 import { todayHijri, HIJRI_MONTHS } from '../utils/hijri';
+import { DHIKR_TEXTS, TEXT_FOR_DHIKR, type DhikrTextId } from '../data/dhikrTexts';
+
+const DhikrReader = lazy(() => import('../components/DhikrReader'));
+
+function ReadButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="w-11 h-11 flex items-center justify-center rounded-full text-primary active:bg-muted flex-shrink-0"
+      aria-label={`Read ${label}`}
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"/>
+        <path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"/>
+      </svg>
+    </button>
+  );
+}
 
 export default function DhikrScreen() {
   const { state, setDhikr, toggleDhikrSub, dhikrStreak } = useAppStore();
   const todayK = todayKey();
-  const today = new Date();
-  const hijri = useMemo(() => todayHijri(), []);
+  const today = activeDate();
+  const hijri = useMemo(() => todayHijri(activeDate()), []);
+  const [reading, setReading] = useState<DhikrTextId | null>(null);
 
   // Group by prayer time
   const byTime = useMemo(() => {
@@ -104,6 +123,7 @@ export default function DhikrScreen() {
                                 <p className="text-[11px] text-accent font-medium">{streak}d 🔥</p>
                               )}
                             </div>
+                            <ReadButton onClick={() => setReading(TEXT_FOR_DHIKR[def.id])} label={def.name} />
                           </div>
 
                           {/* Sub-items */}
@@ -142,9 +162,10 @@ export default function DhikrScreen() {
                   return (
                     <div key={def.id}>
                       {idx > 0 && <div className="h-px bg-border mx-4" />}
+                      <div className="flex items-center pr-2">
                       <button
                         onClick={() => setDhikr(todayK, def.id, !done)}
-                        className="w-full flex items-center gap-3 px-4 py-4 transition active:bg-muted text-left"
+                        className="flex-1 min-w-0 flex items-center gap-3 px-4 py-4 transition active:bg-muted text-left"
                       >
                         <span className={[
                           'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
@@ -170,6 +191,8 @@ export default function DhikrScreen() {
                           </div>
                         )}
                       </button>
+                      <ReadButton onClick={() => setReading(TEXT_FOR_DHIKR[def.id])} label={def.name} />
+                      </div>
                     </div>
                   );
                 })}
@@ -186,7 +209,40 @@ export default function DhikrScreen() {
             <p className="text-[13px] text-muted-fg mt-0.5">Alhamdulillah — may Allah accept.</p>
           </div>
         )}
+
+        {/* Texts: every dhikr from shaykhfaisal.com, to read or listen to */}
+        <div className="mx-4 mt-4 mb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg mb-2 px-1">
+            Texts
+          </p>
+          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+            {DHIKR_TEXTS.map((t, idx) => (
+              <div key={t.id}>
+                {idx > 0 && <div className="h-px bg-border mx-4" />}
+                <button
+                  onClick={() => setReading(t.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3.5 transition active:bg-muted text-left"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[15px] font-semibold text-foreground">{t.title}</p>
+                    <p className="font-arabic text-[14px] text-muted-fg">{t.titleAr}</p>
+                  </div>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-fg flex-shrink-0">
+                    <path d="M9 18l6-6-6-6"/>
+                  </svg>
+                </button>
+              </div>
+            ))}
+          </div>
+          <p className="text-[12px] text-muted-fg mt-2 px-1">From shaykhfaisal.com · Arabic, transliteration and English, with audio.</p>
+        </div>
       </div>
+
+      {reading && (
+        <Suspense fallback={null}>
+          <DhikrReader textId={reading} onClose={() => setReading(null)} />
+        </Suspense>
+      )}
     </div>
   );
 }

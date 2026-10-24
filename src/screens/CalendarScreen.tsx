@@ -3,7 +3,7 @@ import { todayHijri, gregorianToHijri, hijriToGregorian, hijriMonthDays, hijriMo
 import { eventsForDay, hasEventOnDay, ISLAMIC_EVENTS, type IslamicEvent } from '../data/islamicEvents';
 import EventDetailModal from '../components/EventDetailModal';
 import DhikrChecklist from '../components/DhikrChecklist';
-import { useAppStore, todayKey, toDateKey, type CommunityEvent, type CommunityEventCategory } from '../store';
+import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent, type CommunityEventCategory } from '../store';
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -13,7 +13,7 @@ const CATEGORY_ICON: Record<CommunityEventCategory, string> = {
 
 export default function CalendarScreen() {
   const { state, removeCommunityEvent } = useAppStore();
-  const todayH = useMemo(() => todayHijri(), []);
+  const todayH = useMemo(() => todayHijri(activeDate()), []);
   const [viewYear, setViewYear] = useState(todayH.year);
   const [viewMonth, setViewMonth] = useState(todayH.month);
   const [selectedDay, setSelectedDay] = useState<number | null>(todayH.day);
@@ -22,7 +22,7 @@ export default function CalendarScreen() {
   const daysInMonth = hijriMonthDays(viewYear, viewMonth);
   const startDow = hijriMonthStartDow(viewYear, viewMonth);
 
-  const today = new Date();
+  const today = activeDate();
   const todayGreg = { y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() };
 
   function prevMonth() {
