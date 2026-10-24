@@ -1,5 +1,9 @@
 services:
   murid-day-journal:
+    # Published by .github/workflows/docker.yml on every push to main.
+    # `build: .` stays as a fallback: `docker compose up -d --build` still
+    # builds locally from the checkout.
+    image: ghcr.io/amarzbar/salik:latest
     build: .
     container_name: murid-day-journal
     restart: always

@@ -77,6 +77,18 @@ React + Vite PWA  ──(localStorage, instant)──▶  UI
 The app runs with Docker Compose from `~/services/murid-day-journal` and
 listens on port **3011**.
 
+Deploys are automatic: every push to `main` builds the image in GitHub Actions
+(`.github/workflows/docker.yml`) and publishes it to
+`ghcr.io/amarzbar/salik:latest`. A cron job on mavis runs
+`scripts/auto-update.sh` every 5 minutes, which pulls the new image and
+restarts the container only when it changed:
+
+```cron
+*/5 * * * * /home/mar/services/murid-day-journal/scripts/auto-update.sh >> /home/mar/services/murid-day-journal/auto-update.log 2>&1
+```
+
+To deploy by hand (or build from the checkout instead of GHCR):
+
 ```bash
 cd ~/services/murid-day-journal
 git pull
