@@ -50,7 +50,7 @@ export default function App() {
     // colour from theme-color, so keep that matched to the page background.
     const setDark = (dark: boolean) => {
       root.classList.toggle('dark', dark);
-      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#141210' : '#F9F6F2');
+      document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', dark ? '#141210' : '#F9F6F2'));
     };
 
     if (darkMode === 'dark') {

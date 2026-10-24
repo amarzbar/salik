@@ -67,6 +67,14 @@ html {
   overscroll-behavior: none;
 }
 
+/* WebKit bug 301108 (iOS 26): an installed web app's viewport comes up short
+   by the top safe-area inset. Only bites with a translucent status bar (the
+   inset is 0 with the opaque one used now); kept so switching back to
+   black-translucent doesn't bring the gap under the tab bar back. */
+@media (display-mode: standalone) {
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); }
+}
+
 body {
   height: 100%;
   margin: 0;
@@ -77,6 +85,14 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overscroll-behavior: none;
+}
+
+/* WebKit bug 301108 (iOS 26): an installed web app's viewport comes up short
+   by the top safe-area inset. Only bites with a translucent status bar (the
+   inset is 0 with the opaque one used now); kept so switching back to
+   black-translucent doesn't bring the gap under the tab bar back. */
+@media (display-mode: standalone) {
+  html { min-height: min(100lvh, calc(100% + env(safe-area-inset-top, 0px))); }
 }
 
 /* Dark mode only: in an installed iOS home-screen app, the safe area right

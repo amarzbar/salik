@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Murid Day Journal</title>
     <meta name="description" content="Personal Islamic calendar and worship tracker" />
-    <meta name="theme-color" content="#F9F6F2" />
+    <!-- Opaque status bar ("default", not black-translucent): on iOS 26 a
+         translucent bar blurs whatever sits under it and, through WebKit bug
+         301108, leaves the viewport short by the status-bar height, which
+         shows up as a dead band under the tab bar. -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#F9F6F2" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#141210" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
