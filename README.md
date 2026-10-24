@@ -111,6 +111,4 @@ pnpm dev                      # Vite dev server, UI only (no /api proxy)
 Run with `DATA_DIR=/some/tmp/dir` to keep local testing away from real data.
 
 ## Origin
-
-Scaffolded in Figma Make (see `AGENTS.md` and `.figma/`), then extended with
-the Express backend, push notifications and Docker deployment.
+I've sorted wanted a hyper specific app for me to track my Dhikr and Salah. Other solutions, would require a text file or document. This is sort of my ideal representation of a Muslim Prayer Tracker app that 1. Is simple enough, 2. Is self hostable, 3. Allows me to track my habits and notify me to do what is good.
