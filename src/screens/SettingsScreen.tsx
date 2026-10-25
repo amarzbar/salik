@@ -88,7 +88,7 @@ export default function SettingsScreen({ onBack }: Props) {
     || (window.navigator as unknown as { standalone?: boolean }).standalone === true;
 
   return (
-    <div className="flex flex-col h-full" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <div className="flex flex-col h-full" style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + var(--edge-ramp))' }}>
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-4 border-b border-border">
         <button

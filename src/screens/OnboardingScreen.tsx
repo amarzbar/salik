@@ -43,7 +43,7 @@ export default function OnboardingScreen() {
 
   return (
     <div className="flex flex-col h-full bg-background"
-      style={{ paddingTop: 'env(safe-area-inset-top, 20px)', paddingBottom: 'env(safe-area-inset-bottom, 20px)' }}>
+      style={{ paddingTop: 'calc(env(safe-area-inset-top, 20px) + var(--edge-ramp))', paddingBottom: 'env(safe-area-inset-bottom, 20px)' }}>
 
       {/* Progress dots */}
       <div className="flex justify-center gap-2 py-4">

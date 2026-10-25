@@ -3,6 +3,7 @@ import { todayHijri, HIJRI_MONTHS, formatHijriDate } from '../utils/hijri';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { nextUpcomingEvent, eventsForDay, EVENT_COLOR_CLASSES } from '../data/islamicEvents';
 import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, type PrayerStatus } from '../store';
+import { usePrayerTap } from '../components/PrayerStatusSheet';
 import EventDetailModal from '../components/EventDetailModal';
 import type { IslamicEvent } from '../data/islamicEvents';
 import type { TabId } from '../App';
@@ -39,7 +40,8 @@ function ProgressRing({ value, max, size = 88 }: { value: number; max: number; s
 interface Props { onNavigate: (tab: TabId) => void; }
 
 export default function TodayScreen({ onNavigate }: Props) {
-  const { state, cyclePrayerStatus, setDhikr, toggleDhikrSub, incSalawat, resetSalawat } = useAppStore();
+  const prayerTap = usePrayerTap();
+  const { state, setDhikr, toggleDhikrSub, incSalawat, resetSalawat } = useAppStore();
   const todayK = todayKey();
   const today = activeDate();
   const hijri = useMemo(() => todayHijri(activeDate()), []);
@@ -71,6 +73,7 @@ export default function TodayScreen({ onNavigate }: Props) {
 
   return (
     <div className="px-4 pt-3 pb-6 space-y-4">
+      {prayerTap.sheet}
       {/* Date header */}
       <div className="px-1">
         <p className="text-[13px] font-medium text-muted-fg uppercase tracking-widest mb-0.5">{dayName}</p>
@@ -141,7 +144,7 @@ export default function TodayScreen({ onNavigate }: Props) {
             return (
               <button
                 key={prayer}
-                onClick={() => cyclePrayerStatus(todayK, prayer)}
+                onClick={() => prayerTap.onTap(todayK, prayer)}
                 className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted"
               >
                 <div className="flex items-center gap-3">

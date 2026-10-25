@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, type PrayerStatus } from '../store';
+import { usePrayerTap } from '../components/PrayerStatusSheet';
 import { todayHijri, gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import DayPrayerModal from '../components/DayPrayerModal';
 
@@ -25,7 +26,8 @@ function statusColor(rate: number): string {
 }
 
 export default function PrayersScreen() {
-  const { state, cyclePrayerStatus, prayerStreak } = useAppStore();
+  const { state, prayerStreak } = useAppStore();
+  const prayerTap = usePrayerTap();
   const [view, setView] = useState<View>('today');
   const [selectedHistoryDay, setSelectedHistoryDay] = useState<string | null>(null);
   const todayK = todayKey();
@@ -85,6 +87,7 @@ export default function PrayersScreen() {
 
   return (
     <div className="flex flex-col h-full">
+      {prayerTap.sheet}
       {/* Tab switcher */}
       <div className="flex mx-4 mt-4 mb-3 bg-muted rounded-xl p-1 gap-1">
         {(['today', 'history'] as View[]).map(v => (
@@ -137,7 +140,7 @@ export default function PrayersScreen() {
                   <div key={prayer}>
                     {idx > 0 && <div className="h-px bg-border mx-4" />}
                     <button
-                      onClick={() => cyclePrayerStatus(todayK, prayer)}
+                      onClick={() => prayerTap.onTap(todayK, prayer)}
                       className="w-full flex items-center gap-4 px-4 py-4 transition active:bg-muted"
                     >
                       {/* Status indicator */}
@@ -173,8 +176,9 @@ export default function PrayersScreen() {
                 })}
               </div>
               <p className="text-[12px] text-muted-fg mt-2">
-                Tap a prayer to mark it done — on time, late, or qada&apos; is detected automatically from the
-                clock and this prayer&apos;s window. Tap again to mark it missed, and once more to reset.
+                Tap a prayer to mark it done: on time, late or qada&apos; is worked out from the clock and
+                this prayer&apos;s window. Tap a marked prayer to change it, e.g. to on time if you prayed
+                on time but logged it later.
               </p>
             </div>
           </div>

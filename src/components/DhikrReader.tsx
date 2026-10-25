@@ -67,7 +67,7 @@ export default function DhikrReader({ textId, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       <header
         className="flex items-center gap-2 px-2 bg-background border-b border-border"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 8px)', paddingBottom: '8px' }}
+        style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), 8px) + var(--edge-ramp))', paddingBottom: '8px' }}
       >
         <button
           onClick={onClose}
