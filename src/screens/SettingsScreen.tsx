@@ -292,7 +292,7 @@ export default function SettingsScreen({ onBack }: Props) {
               <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
                 <p className="text-[13px] font-semibold text-amber-900 dark:text-amber-300 mb-1">iOS: Install first</p>
                 <p className="text-[12px] text-amber-800 dark:text-amber-400">
-                  Add Murid Day Journal to your Home Screen via Safari's Share menu to enable push notifications on iOS 16.4+.
+                  Add Salik to your Home Screen via Safari's Share menu to enable push notifications on iOS 16.4+.
                 </p>
               </div>
             )}
@@ -363,7 +363,7 @@ export default function SettingsScreen({ onBack }: Props) {
                   </p>
                 ) : (
                   <p className="text-[13px] text-muted-fg">
-                    Tap the browser menu (⋮) → "Add to Home Screen" or "Install App" to install Murid Day Journal on your device.
+                    Tap the browser menu (⋮) → "Add to Home Screen" or "Install App" to install Salik on your device.
                   </p>
                 )}
               </div>
@@ -374,7 +374,7 @@ export default function SettingsScreen({ onBack }: Props) {
         {/* About */}
         <Section title="About">
           <div className="px-4 pb-4 space-y-1">
-            <Row label="App name" value="Murid Day Journal" />
+            <Row label="App name" value="Salik" />
             <Row label="Version" value="1.0.0" />
             <Row label="Calendar" value="Civil/Tabular Islamic Calendar" />
             <Row label="Prayer method" value="Muslim World League (MWL)" />

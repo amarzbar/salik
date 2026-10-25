@@ -4,7 +4,7 @@ A personal Islamic calendar and worship tracker for the murid's day: the five
 prayers, the daily awrad, salawat, the Hijri calendar and a short daily journal,
 in one installable PWA. Self-hostable for your ownership.
 
-![Murid Day Journal screens](docs/screenshots/hero.png)
+![Salik screens](docs/screenshots/hero.png)
 
 
 ## Features

@@ -1,4 +1,4 @@
-const CACHE = 'murid-v12'; // bumped: header clear of iOS 26 edge blur, prayer status picker
+const CACHE = 'murid-v13'; // bumped: renamed to Salik, launch splash
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -43,7 +43,7 @@ self.addEventListener('fetch', e => {
 });
 
 self.addEventListener('push', e => {
-  const data = e.data?.json?.() ?? { title: 'Murid Day Journal', body: 'Reminder' };
+  const data = e.data?.json?.() ?? { title: 'Salik', body: 'Reminder' };
   e.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
