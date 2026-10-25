@@ -81,6 +81,50 @@ app.get('/api/texts/:id.pdf', async (req, res) => {
   }
 });
 
+// ── Voice notes: speech-to-text via the local Whisper service ───────
+// The browser records with MediaRecorder (audio/mp4 on iOS, audio/webm
+// elsewhere) and posts the raw bytes here; we forward them to the
+// `whisper` container (speaches, OpenAI-compatible API, CPU) on the
+// compose network. Audio never leaves mavis.
+const WHISPER_URL = process.env.WHISPER_URL || 'http://whisper:8000';
+const WHISPER_MODEL = process.env.WHISPER_MODEL || 'Systran/faster-whisper-small';
+// Nudges Whisper towards the spellings used in the app.
+const WHISPER_PROMPT =
+  'Journal note. Salah, Fajr, Dhuhr, Asr, Maghrib, Isha, dhikr, Wirdul Aam, Hizbul Bahr, ' +
+  "Salawat, Shaykh, Sayyid, Sidi, Tariqah, halaqah, du'a, InshaAllah, Alhamdulillah, SubhanAllah, MashaAllah.";
+
+async function whisperTranscribe(buf, type) {
+  const ext = type.includes('mp4') || type.includes('m4a') ? 'm4a' : type.includes('ogg') ? 'ogg' : 'webm';
+  const form = new FormData();
+  form.append('file', new Blob([buf], { type }), `note.${ext}`);
+  form.append('model', WHISPER_MODEL);
+  form.append('prompt', WHISPER_PROMPT);
+  form.append('response_format', 'json');
+  return fetch(`${WHISPER_URL}/v1/audio/transcriptions`, { method: 'POST', body: form });
+}
+
+app.post('/api/transcribe', express.raw({ type: 'audio/*', limit: '25mb' }), async (req, res) => {
+  if (!req.body?.length) return res.status(400).json({ error: 'no audio' });
+  const type = req.get('content-type') || 'audio/webm';
+  try {
+    let r = await whisperTranscribe(req.body, type);
+    if (r.status === 404) {
+      // First use: the model isn't downloaded yet. Fetch it, then retry once.
+      await fetch(`${WHISPER_URL}/v1/models/${WHISPER_MODEL}`, { method: 'POST' });
+      r = await whisperTranscribe(req.body, type);
+    }
+    if (!r.ok) {
+      console.error('[transcribe] whisper', r.status, (await r.text()).slice(0, 300));
+      return res.status(502).json({ error: 'transcription failed' });
+    }
+    const { text } = await r.json();
+    res.json({ text: (text || '').trim() });
+  } catch (err) {
+    console.error('[transcribe]', err.message);
+    res.status(502).json({ error: 'transcription service unavailable' });
+  }
+});
+
 // ── Static frontend ─────────────────────────────────────────────────
 app.use(express.static(DIST_DIR));
 app.get('*', (req, res) => {

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useAppStore, todayKey, activeDate, toDateKey, dateFromKey } from '../store';
+import VoiceNoteButton from '../components/VoiceNoteButton';
 import { gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { PRAYERS, type PrayerStatus } from '../store';
 
@@ -85,6 +86,15 @@ export default function JournalScreen() {
               rows={6}
               className="w-full resize-none bg-transparent text-[16px] text-foreground placeholder:text-muted-fg border-none outline-none leading-relaxed"
             />
+            <div className="mt-2">
+              <VoiceNoteButton
+                onText={t => {
+                  const next = todayText.trim() ? `${todayText.trimEnd()}\n${t}` : t;
+                  setTodayText(next);
+                  setJournal(todayK, next);
+                }}
+              />
+            </div>
           </div>
 
           {/* Save indicator */}
