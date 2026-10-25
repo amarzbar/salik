@@ -1,4 +1,4 @@
-const CACHE = 'murid-v13'; // bumped: renamed to Salik, launch splash
+const CACHE = 'murid-v14'; // bumped: splash hold, voice notes
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {

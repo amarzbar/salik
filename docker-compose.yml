@@ -12,11 +12,31 @@ services:
     environment:
       PORT: 3011
       VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+      WHISPER_URL: http://whisper:8000
+      WHISPER_MODEL: ${WHISPER_MODEL:-Systran/faster-whisper-small}
     volumes:
       - ./data:/app/data
+    networks:
+      - murid-network
+    depends_on:
+      - whisper
+
+  # Speech-to-text for voice journal notes (speaches: faster-whisper behind an
+  # OpenAI-compatible API, CPU build). Only reachable from the app over the
+  # compose network; the model downloads on first use into whisper-models.
+  whisper:
+    image: ghcr.io/speaches-ai/speaches:latest-cpu
+    container_name: salik-whisper
+    restart: always
+    cpus: 6
+    volumes:
+      - whisper-models:/home/ubuntu/.cache/huggingface/hub
     networks:
       - murid-network
 
 networks:
   murid-network:
     driver: bridge
+
+volumes:
+  whisper-models:

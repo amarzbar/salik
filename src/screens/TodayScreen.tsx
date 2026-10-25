@@ -3,6 +3,7 @@ import { todayHijri, HIJRI_MONTHS, formatHijriDate } from '../utils/hijri';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { nextUpcomingEvent, eventsForDay, EVENT_COLOR_CLASSES } from '../data/islamicEvents';
 import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, type PrayerStatus } from '../store';
+import VoiceNoteButton from '../components/VoiceNoteButton';
 import { usePrayerTap } from '../components/PrayerStatusSheet';
 import EventDetailModal from '../components/EventDetailModal';
 import type { IslamicEvent } from '../data/islamicEvents';
@@ -295,7 +296,14 @@ export default function TodayScreen({ onNavigate }: Props) {
           rows={3}
           className="w-full resize-none bg-muted rounded-xl p-3 text-[16px] text-foreground placeholder:text-muted-fg border-none outline-none"
         />
-        <div className="flex justify-end mt-2">
+        <div className="flex items-center justify-between gap-2 mt-2">
+          <VoiceNoteButton
+            onText={t => {
+              const next = journalText.trim() ? `${journalText.trimEnd()}\n${t}` : t;
+              setJournalText(next);
+              setJournal(todayK, next);
+            }}
+          />
           <button
             onClick={() => { if (journalText.trim()) { setJournal(todayK, journalText); onNavigate('journal'); } else onNavigate('journal'); }}
             className="text-[13px] text-primary font-medium"
