@@ -87,7 +87,7 @@ export default function App() {
       {/* Header */}
       <header
         className="flex items-center justify-between px-4 bg-background border-b border-border"
-        style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 12px)', paddingBottom: '12px' }}
+        style={{ paddingTop: 'calc(max(env(safe-area-inset-top, 0px), 12px) + var(--edge-ramp))', paddingBottom: '10px' }}
       >
         <h1 className="text-[17px] font-bold text-foreground tracking-tight">
           {TAB_TITLES[activeTab]}

@@ -1,4 +1,4 @@
-const CACHE = 'murid-v11'; // bumped: theme-color per scheme, iOS 26 viewport guard
+const CACHE = 'murid-v12'; // bumped: header clear of iOS 26 edge blur, prayer status picker
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {

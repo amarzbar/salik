@@ -5,6 +5,7 @@
 import { useMemo } from 'react';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { useAppStore, PRAYERS, PRAYER_LABELS, dateFromKey, type PrayerStatus } from '../store';
+import { usePrayerTap } from './PrayerStatusSheet';
 
 const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: string }> = {
   pending: { label: 'Tap',     bg: 'bg-muted',       text: 'text-muted-fg' },
@@ -19,7 +20,8 @@ interface Props {
 }
 
 export default function PrayerChecklist({ dateKey }: Props) {
-  const { state, cyclePrayerStatus } = useAppStore();
+  const { state } = useAppStore();
+  const prayerTap = usePrayerTap();
   const loc = resolveLocation(state.settings);
   const times = useMemo(
     () => calcPrayerTimes(dateFromKey(dateKey), loc.lat, loc.lng, loc.tz, {
@@ -38,6 +40,7 @@ export default function PrayerChecklist({ dateKey }: Props) {
 
   return (
     <div className="bg-card rounded-2xl border border-border overflow-hidden">
+      {prayerTap.sheet}
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg">Prayers</h3>
         <span className={`text-[12px] font-semibold tabular-nums ${completed === 5 ? 'text-primary' : 'text-muted-fg'}`}>
@@ -51,7 +54,7 @@ export default function PrayerChecklist({ dateKey }: Props) {
           return (
             <button
               key={prayer}
-              onClick={() => cyclePrayerStatus(dateKey, prayer)}
+              onClick={() => prayerTap.onTap(dateKey, prayer)}
               className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted"
             >
               <div className="flex items-center gap-3">
@@ -69,7 +72,7 @@ export default function PrayerChecklist({ dateKey }: Props) {
         })}
       </div>
       <p className="px-4 py-2.5 text-[11px] text-muted-fg border-t border-border">
-        Tap a prayer to mark it — on time/late/qada&apos; is detected automatically, tap again for missed, once more to reset.
+        Tap a prayer to mark it (on time/late/qada&apos; is worked out automatically). Tap a marked prayer to change it.
       </p>
     </div>
   );
