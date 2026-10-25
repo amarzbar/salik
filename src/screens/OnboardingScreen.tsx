@@ -96,7 +96,7 @@ function StepWelcome() {
         </svg>
       </div>
       <h1 className="text-3xl font-bold text-foreground mb-3 tracking-tight">
-        Murid Day Journal
+        Salik
       </h1>
       <p className="text-[16px] text-muted-fg leading-relaxed max-w-xs">
         Your personal Islamic calendar and daily worship tracker — prayers, dhikr, fasting, and more.

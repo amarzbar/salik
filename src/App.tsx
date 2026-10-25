@@ -13,7 +13,7 @@ import OnboardingScreen from './screens/OnboardingScreen';
 export type TabId = 'today' | 'calendar' | 'prayers' | 'dhikr' | 'journal';
 
 const TAB_TITLES: Record<TabId, string> = {
-  today: 'Murid Day Journal',
+  today: 'Salik',
   calendar: 'Calendar',
   prayers: 'Prayers',
   dhikr: 'Dhikr',
