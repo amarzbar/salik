@@ -101,6 +101,7 @@ export interface AppState {
     darkMode:          'system' | 'light' | 'dark';
     notifications:     boolean;
     prayerNotifs:      boolean;
+    prayerStartNotifs?: boolean; // alert the moment each prayer time enters (missing = on)
     dhikrNotifs:       boolean;
     eventNotifs:       boolean;
     reflectionNotifs:  boolean; // daily hadith on the virtue of Salah
@@ -133,6 +134,7 @@ const DEFAULTS: AppState = {
     darkMode: 'system',
     notifications: false,
     prayerNotifs: true,
+    prayerStartNotifs: true,
     dhikrNotifs: true,
     eventNotifs: true,
     reflectionNotifs: true,
