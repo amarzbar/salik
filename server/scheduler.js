@@ -40,17 +40,29 @@ const SALAH_HADITH = [
 ];
 
 // ── Anti-stacking outbound queue ────────────────────────────────────────────
-// Non-prayer notifications (dhikr, reflection, events, end-of-day) go through
-// here instead of being sent directly — a minimum gap is enforced between
-// them so a user never gets a burst of simultaneous/near-simultaneous
-// lock-screen alerts. Prayer-time reminders are exempt (see sendImmediate) —
-// those are time-critical and must never be delayed — but a prayer send
-// still bumps lastSentAt, so a queued item doesn't immediately follow it.
-const MIN_GAP_MS = 3 * 60 * 60 * 1000; // 3 hours between any two non-prayer notifications
-let _queue = [];
+// Low-urgency notifications (reflection, events, end-of-day) go through here
+// instead of being sent directly — a minimum gap is enforced between them so
+// a user never gets a burst of near-simultaneous lock-screen alerts.
+// Time-critical ones (prayer and dhikr reminders) are exempt (see
+// sendImmediate) and must never be delayed, but they still bump lastSentAt,
+// so a queued item doesn't immediately follow them.
+//
+// The gap used to be 3 hours, which held dhikr reminders until late evening:
+// every prayer reminder restarted the clock, and prayers are less than 3
+// hours apart from Dhuhr onwards. The queue also lived only in memory, so an
+// auto-update restart dropped whatever was waiting. It is now persisted, and
+// items that have waited too long are dropped rather than sent stale.
+const MIN_GAP_MS = 30 * 60 * 1000;          // 30 min between queued notifications
+const MAX_QUEUE_WAIT_MS = 3 * 60 * 60 * 1000; // drop anything queued longer than this
+const QUEUED_TTL_SEC = 60 * 60;             // push service may hold a queued item ≤ 1h
 
 function loadQueueState() {
-  try { return JSON.parse(fs.readFileSync(QUEUE_STATE_FILE, 'utf8')); } catch { return { lastSentAt: 0 }; }
+  try {
+    const s = JSON.parse(fs.readFileSync(QUEUE_STATE_FILE, 'utf8'));
+    return { lastSentAt: s.lastSentAt || 0, queue: Array.isArray(s.queue) ? s.queue : [] };
+  } catch {
+    return { lastSentAt: 0, queue: [] };
+  }
 }
 function saveQueueState(s) {
   if (!fs.existsSync(store.DATA_DIR)) fs.mkdirSync(store.DATA_DIR, { recursive: true });
@@ -58,30 +70,36 @@ function saveQueueState(s) {
 }
 
 function enqueue(payload) {
-  _queue.push(payload);
+  const qs = loadQueueState();
+  qs.queue.push({ payload, enqueuedAt: Date.now() });
+  saveQueueState(qs);
 }
 
-// Prayer-time reminders bypass the queue/gap entirely — always sent the
-// moment they're due, never held back. Still records the send time so the
-// 3-hour gap for other categories is measured from the most recent
-// notification of any kind, not just non-prayer ones.
-function sendImmediate(payload) {
-  push.sendToAll(payload);
+// Prayer and dhikr reminders bypass the queue/gap entirely — always sent the
+// moment they're due. ttlSec bounds how long the push service may hold the
+// message if the phone is unreachable, so a reminder never arrives after the
+// moment it was for. Still records the send time so the gap for queued
+// categories is measured from the most recent notification of any kind.
+function sendImmediate(payload, ttlSec) {
+  push.sendToAll(payload, { ttlSec });
   const qs = loadQueueState();
   qs.lastSentAt = Date.now();
   saveQueueState(qs);
 }
 
 function drainQueue() {
-  if (_queue.length === 0) return;
   const qs = loadQueueState();
   const now = Date.now();
-  // Send at most one per tick beyond the gap check, keeping order stable —
-  // the cron tick (every 60s) naturally paces the rest out.
-  if (now - qs.lastSentAt >= MIN_GAP_MS) {
-    const next = _queue.shift();
-    push.sendToAll(next);
+  const fresh = qs.queue.filter((item) => now - item.enqueuedAt <= MAX_QUEUE_WAIT_MS);
+  const changed = fresh.length !== qs.queue.length;
+  qs.queue = fresh;
+  // Send at most one per tick, keeping order stable — the tick naturally
+  // paces the rest out.
+  if (qs.queue.length && now - qs.lastSentAt >= MIN_GAP_MS) {
+    push.sendToAll(qs.queue.shift().payload, { ttlSec: QUEUED_TTL_SEC });
     qs.lastSentAt = now;
+    saveQueueState(qs);
+  } else if (changed) {
     saveQueueState(qs);
   }
 }
@@ -170,12 +188,30 @@ function tick() {
           body: `Time to prepare for ${PRAYER_LABELS[prayer]}.`,
           tag: `prayer-${prayer}`,
           url: '/',
-        });
+        }, s.notifLeadMin * 60);
+      }
+    }
+  }
+
+  // ── Prayer-time-entered alerts (fire at the prayer time itself) ──
+  if (s.prayerStartNotifs !== false) {
+    for (const [prayer, hour] of Object.entries(prayerHours)) {
+      const key = `${dateKey}_start_${prayer}`;
+      if (!log[key] && within(hour)) {
+        log[key] = true;
+        sendImmediate({
+          title: `${PRAYER_LABELS[prayer]} has entered`,
+          body: `It's time for ${PRAYER_LABELS[prayer]}.`,
+          tag: `start-${prayer}`,
+          url: '/',
+        }, 20 * 60);
       }
     }
   }
 
   // ── Dhikr reminders (fire at the associated prayer time) ─────────
+  // Sent immediately like prayer reminders: they belong to a specific
+  // prayer, so holding them back makes them useless.
   if (s.dhikrNotifs) {
     for (const d of DHIKR_DEFS) {
       if (d.prayer === 'all') continue; // Salatut Ta'ziyah — reminded via each prayer's own dhikr slot
@@ -183,12 +219,12 @@ function tick() {
       const key = `${dateKey}_dhikr_${d.id}`;
       if (!log[key] && within(hour, -2)) { // ~2 min after prayer time
         log[key] = true;
-        enqueue({
+        sendImmediate({
           title: d.name,
           body: `Time for ${d.name} — after ${PRAYER_LABELS[d.prayer]}.`,
           tag: `dhikr-${d.id}`,
           url: '/',
-        });
+        }, 60 * 60);
       }
     }
   }
@@ -276,9 +312,12 @@ function tick() {
   drainQueue();
 }
 
+// Every 15 seconds rather than every minute, so a reminder goes out within
+// ~15s of its moment instead of up to a minute late. The sent-log keeps each
+// reminder to a single send.
 function start() {
-  cron.schedule('* * * * *', tick);
-  console.log('[scheduler] reminder scheduler started (every minute)');
+  cron.schedule('*/15 * * * * *', tick);
+  console.log('[scheduler] reminder scheduler started (every 15s)');
 }
 
 module.exports = { start, tick };

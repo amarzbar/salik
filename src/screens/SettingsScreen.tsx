@@ -301,7 +301,8 @@ export default function SettingsScreen({ onBack }: Props) {
             <div className="space-y-2">
               {[
                 { key: 'prayerNotifs' as const, label: 'Prayer time reminders', desc: `${s.notifLeadMin} min before each prayer` },
-                { key: 'dhikrNotifs' as const, label: 'Dhikr reminders', desc: 'After prayer time notifications' },
+                { key: 'prayerStartNotifs' as const, label: 'Prayer has entered', desc: 'The moment each prayer time begins' },
+                { key: 'dhikrNotifs' as const, label: 'Dhikr reminders', desc: 'Right after each prayer time' },
                 { key: 'eventNotifs' as const, label: 'Islamic date alerts', desc: 'Upcoming events and fasting' },
                 { key: 'reflectionNotifs' as const, label: 'Daily reflection', desc: 'A rotating hadith on the virtue of Salah, once each morning' },
                 { key: 'eodNudgeNotifs' as const, label: 'End-of-day nudge', desc: 'Evening check-in naming any prayers still unmarked' },
