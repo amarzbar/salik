@@ -3,6 +3,7 @@ import { useAppStore, DHIKR_DEFS, PRAYER_LABELS, todayKey, activeDate, type Dhik
 import { todayHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { DHIKR_TEXTS, TEXT_FOR_DHIKR, type DhikrTextId } from '../data/dhikrTexts';
 import ProgressRing from '../components/ProgressRing';
+import { LuFlame, LuSparkles } from 'react-icons/lu';
 
 const DhikrReader = lazy(() => import('../components/DhikrReader'));
 
@@ -152,7 +153,7 @@ export default function DhikrScreen() {
                                 {subDone}/{def.subItems.length}
                               </p>
                               {streak > 0 && (
-                                <p className="text-[11px] text-accent font-medium">{streak}d 🔥</p>
+                                <p className="text-[11px] text-accent font-medium inline-flex items-center gap-0.5">{streak}d <LuFlame /></p>
                               )}
                             </div>
                             <ReadButton onClick={() => setReading(TEXT_FOR_DHIKR[def.id])} label={def.name} />
@@ -236,7 +237,7 @@ export default function DhikrScreen() {
         {/* Completion celebration */}
         {doneDhikr === totalDhikr && (
           <div className="mx-4 p-4 bg-secondary rounded-2xl border border-primary/20 text-center">
-            <p className="text-2xl mb-1">🌟</p>
+            <LuSparkles className="text-[26px] text-primary mx-auto mb-1" />
             <p className="font-semibold text-primary text-[15px]">All adhkar complete!</p>
             <p className="text-[13px] text-muted-fg mt-0.5">Alhamdulillah — may Allah accept.</p>
           </div>

@@ -3,13 +3,11 @@ import { todayHijri, gregorianToHijri, hijriToGregorian, hijriMonthDays, hijriMo
 import { eventsForDay, hasEventOnDay, ISLAMIC_EVENTS, type IslamicEvent } from '../data/islamicEvents';
 import EventDetailModal from '../components/EventDetailModal';
 import DhikrChecklist from '../components/DhikrChecklist';
-import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent, type CommunityEventCategory } from '../store';
+import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent } from '../store';
+import { observanceIcon, CAL_CATEGORY_ICON } from '../components/categoryIcons';
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
-const CATEGORY_ICON: Record<CommunityEventCategory, string> = {
-  reminder: '🔔', project: '📓', event: '✨', performance: '🎤', travel: '✈️', study: '📖', other: '•',
-};
 
 export default function CalendarScreen() {
   const { state, removeCommunityEvent } = useAppStore();
@@ -172,9 +170,7 @@ export default function CalendarScreen() {
                       'bg-secondary border-primary/20',
                     ].join(' ')}
                   >
-                    <span className="text-lg">
-                      {ev.category === 'fasting' ? '🌙' : ev.category === 'celebration' ? '🎉' : '✨'}
-                    </span>
+                    {(() => { const Icon = observanceIcon(ev.category); return <Icon className="text-[18px] text-foreground flex-shrink-0 mt-0.5" />; })()}
                     <div className="flex-1 min-w-0">
                       <p className="text-[14px] font-semibold text-foreground">{ev.title}</p>
                       <p className="text-[12px] text-muted-fg truncate">{ev.description}</p>
@@ -246,7 +242,7 @@ export default function CalendarScreen() {
               {sortedCommunityEvents(state.communityEvents).map(ev => (
                 <div key={ev.id} className="p-3.5 rounded-xl bg-card border border-border">
                   <div className="flex items-start gap-3">
-                    <span className="text-lg leading-none mt-0.5">{CATEGORY_ICON[ev.category]}</span>
+                    {(() => { const Icon = CAL_CATEGORY_ICON[ev.category] ?? CAL_CATEGORY_ICON.other; return <Icon className="text-[16px] text-muted-fg mt-0.5 flex-shrink-0" />; })()}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-[14px] font-semibold text-foreground">{ev.title}</p>

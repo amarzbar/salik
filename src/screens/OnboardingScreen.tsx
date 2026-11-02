@@ -1,6 +1,10 @@
 import { useState } from 'react';
 import { CITIES } from '../utils/prayerTimes';
 import { useAppStore } from '../store';
+import type { IconType } from 'react-icons';
+import { LuMoonStar, LuNotebook, LuSmartphone } from 'react-icons/lu';
+import { FaMosque } from 'react-icons/fa6';
+import { GiPrayerBeads } from 'react-icons/gi';
 
 const STEP_COUNT = 3;
 
@@ -102,18 +106,18 @@ function StepWelcome() {
         Your personal Islamic calendar and daily worship tracker — prayers, dhikr, fasting, and more.
       </p>
       <div className="mt-8 grid grid-cols-2 gap-3 w-full text-left">
-        {[
-          { icon: '🌙', title: 'Hijri Calendar', desc: 'Islamic events & dates' },
-          { icon: '🕌', title: 'Prayer Tracker', desc: 'All 5 daily prayers' },
-          { icon: '📿', title: 'Dhikr Tracker', desc: 'Named daily adhkar' },
-          { icon: '📓', title: 'Daily Journal', desc: 'Personal reflections' },
-        ].map(f => (
+        {([
+          { icon: LuMoonStar, title: 'Hijri Calendar', desc: 'Islamic events & dates' },
+          { icon: FaMosque, title: 'Prayer Tracker', desc: 'All 5 daily prayers' },
+          { icon: GiPrayerBeads, title: 'Dhikr Tracker', desc: 'Named daily adhkar' },
+          { icon: LuNotebook, title: 'Daily Journal', desc: 'Personal reflections' },
+        ] as { icon: IconType; title: string; desc: string }[]).map(f => { const Icon = f.icon; return (
           <div key={f.title} className="p-3.5 rounded-2xl bg-card border border-border">
-            <div className="text-2xl mb-1.5">{f.icon}</div>
+            <Icon className="text-[22px] text-primary mb-1.5" />
             <div className="text-[13px] font-semibold text-foreground">{f.title}</div>
             <div className="text-[12px] text-muted-fg">{f.desc}</div>
           </div>
-        ))}
+        ); })}
       </div>
     </div>
   );
@@ -170,7 +174,7 @@ function StepNotifications({
       {isIOS && !isInstalled && (
         <div className="mb-5 p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40">
           <div className="flex items-start gap-3">
-            <span className="text-2xl mt-0.5">📱</span>
+            <LuSmartphone className="text-[22px] text-amber-700 dark:text-amber-400 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-semibold text-amber-900 dark:text-amber-300 text-[14px] mb-1">
                 Install first for iOS notifications

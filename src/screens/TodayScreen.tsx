@@ -6,6 +6,8 @@ import { reminderForDay } from '../data/reminders';
 import { computeBadges, longestRun } from '../data/badges';
 import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, type PrayerStatus } from '../store';
 import ProgressRing from '../components/ProgressRing';
+import { LuFlame, LuSprout, LuPenLine } from 'react-icons/lu';
+import { observanceIcon } from '../components/categoryIcons';
 import VoiceNoteButton from '../components/VoiceNoteButton';
 import { usePrayerTap } from '../components/PrayerStatusSheet';
 import EventDetailModal from '../components/EventDetailModal';
@@ -89,9 +91,7 @@ export default function TodayScreen({ onNavigate }: Props) {
             'bg-secondary border-primary/20'
           }`}
         >
-          <span className="text-2xl">
-            {activeEvents[0].category === 'fasting' ? '🌙' : activeEvents[0].category === 'celebration' ? '🎉' : '✨'}
-          </span>
+          {(() => { const Icon = observanceIcon(activeEvents[0].category); return <Icon className="text-[22px] text-foreground flex-shrink-0" />; })()}
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-[15px] text-foreground truncate">{activeEvents[0].title}</p>
             <p className="text-[13px] text-muted-fg truncate">{activeEvents[0].description}</p>
@@ -104,7 +104,9 @@ export default function TodayScreen({ onNavigate }: Props) {
       <div className="rounded-2xl border border-border bg-gradient-to-br from-secondary to-card p-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-[40px] leading-none">{currentStreak > 0 ? '🔥' : '🌱'}</span>
+            {currentStreak > 0
+              ? <LuFlame className="text-[38px] text-accent flex-shrink-0" />
+              : <LuSprout className="text-[38px] text-primary flex-shrink-0" />}
             <div>
               <p className="text-[34px] font-bold leading-none text-foreground tabular-nums">{currentStreak}</p>
               <p className="text-[13px] text-muted-fg mt-1">day prayer streak</p>
@@ -119,7 +121,9 @@ export default function TodayScreen({ onNavigate }: Props) {
         {nextMilestone && (
           <div className="mt-4">
             <div className="flex items-center justify-between text-[12px] mb-1.5">
-              <span className="text-muted-fg">Next: {nextMilestone.emoji} {nextMilestone.label}</span>
+              <span className="text-muted-fg inline-flex items-center gap-1">
+                Next: {(() => { const Icon = nextMilestone.icon; return <Icon className="text-[13px] text-accent" />; })()} {nextMilestone.label}
+              </span>
               <span className="text-muted-fg tabular-nums">{Math.min(nextMilestone.current, nextMilestone.target)}/{nextMilestone.target}</span>
             </div>
             <div className="h-2 rounded-full bg-muted overflow-hidden">
@@ -140,11 +144,11 @@ export default function TodayScreen({ onNavigate }: Props) {
         <div className="bg-card rounded-2xl border border-border p-4">
           <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-3">Achievements</h3>
           <div className="flex flex-wrap gap-2">
-            {badges.map(b => (
+            {badges.map(b => { const Icon = b.icon; return (
               <span key={b.id} className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-full bg-secondary border border-primary/15 text-[12px] font-medium text-foreground">
-                <span className="text-[14px] leading-none">{b.emoji}</span>{b.label}
+                <Icon className="text-[14px] text-accent" />{b.label}
               </span>
-            ))}
+            ); })}
           </div>
         </div>
       )}
@@ -248,7 +252,7 @@ export default function TodayScreen({ onNavigate }: Props) {
           onClick={() => setJournalOpen(true)}
           className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border text-left transition active:scale-[0.99]"
         >
-          <span className="text-[18px]">✍️</span>
+          <LuPenLine className="text-[18px] text-muted-fg flex-shrink-0" />
           <span className="flex-1 text-[14px] font-medium text-muted-fg">
             {state.journal[todayK]?.text ? 'Edit today’s reflection' : 'Add a reflection'}
           </span>

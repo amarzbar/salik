@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import { CITIES, ANGLE_METHODS, ASR_METHODS, requestGeolocation, type AngleMethodId, type AsrMethod } from '../utils/prayerTimes';
 import { useAppStore, THEMES, type Theme } from '../store';
 import { subscribeToPush, unsubscribeFromPush } from '../push';
+import type { IconType } from 'react-icons';
+import { LuBell, LuPalette, LuMapPin, LuInfo, LuSunMoon, LuSun, LuMoon } from 'react-icons/lu';
+import { GiPrayerBeads } from 'react-icons/gi';
 
 interface Props { onBack: () => void; }
 
@@ -16,12 +19,12 @@ const PAGE_TITLES: Record<Page, string> = {
   about: 'About',
 };
 
-const MENU: { page: Page; icon: string; label: string; sub: string }[] = [
-  { page: 'notifications', icon: '🔔', label: 'Notifications', sub: 'Reminders, timing and alerts' },
-  { page: 'appearance',    icon: '🎨', label: 'Appearance',    sub: 'Display mode and color theme' },
-  { page: 'location',      icon: '📍', label: 'Location & Calculation', sub: 'City, geolocation, prayer method' },
-  { page: 'salawat',       icon: '📿', label: 'Salawat Goal',  sub: 'Daily salawat target' },
-  { page: 'about',         icon: 'ℹ️', label: 'About',         sub: 'App info and data' },
+const MENU: { page: Page; icon: IconType; label: string; sub: string }[] = [
+  { page: 'notifications', icon: LuBell,       label: 'Notifications', sub: 'Reminders, timing and alerts' },
+  { page: 'appearance',    icon: LuPalette,    label: 'Appearance',    sub: 'Display mode and color theme' },
+  { page: 'location',      icon: LuMapPin,     label: 'Location & Calculation', sub: 'City, geolocation, prayer method' },
+  { page: 'salawat',       icon: GiPrayerBeads, label: 'Salawat Goal',  sub: 'Daily salawat target' },
+  { page: 'about',         icon: LuInfo,       label: 'About',         sub: 'App info and data' },
 ];
 
 export default function SettingsScreen({ onBack }: Props) {
@@ -121,13 +124,13 @@ export default function SettingsScreen({ onBack }: Props) {
         {/* Root menu */}
         {page === null && (
           <div className="px-4 pt-4 space-y-2">
-            {MENU.map(m => (
+            {MENU.map(m => { const Icon = m.icon; return (
               <button
                 key={m.page}
                 onClick={() => setPage(m.page)}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border text-left transition active:scale-[0.99]"
               >
-                <span className="text-[22px] w-9 h-9 flex items-center justify-center rounded-xl bg-secondary">{m.icon}</span>
+                <span className="w-9 h-9 flex items-center justify-center rounded-xl bg-secondary text-primary"><Icon className="text-[18px]" /></span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[15px] font-semibold text-foreground">{m.label}</p>
                   <p className="text-[12px] text-muted-fg truncate">{m.sub}</p>
@@ -136,7 +139,7 @@ export default function SettingsScreen({ onBack }: Props) {
                   <path d="M9 18l6-6-6-6"/>
                 </svg>
               </button>
-            ))}
+            ); })}
           </div>
         )}
 
@@ -244,9 +247,12 @@ export default function SettingsScreen({ onBack }: Props) {
                       <button
                         key={mode}
                         onClick={() => updateSettings({ darkMode: mode })}
-                        className={['flex-1 py-2.5 rounded-xl border text-[13px] font-medium capitalize transition-colors', s.darkMode === mode ? 'bg-secondary border-primary text-primary' : 'bg-card border-border text-foreground'].join(' ')}
+                        className={['flex-1 py-2.5 rounded-xl border text-[13px] font-medium transition-colors', s.darkMode === mode ? 'bg-secondary border-primary text-primary' : 'bg-card border-border text-foreground'].join(' ')}
                       >
-                        {mode === 'system' ? '⚙️ Auto' : mode === 'light' ? '☀️ Light' : '🌙 Dark'}
+                        <span className="inline-flex items-center justify-center gap-1.5">
+                          {mode === 'system' ? <LuSunMoon /> : mode === 'light' ? <LuSun /> : <LuMoon />}
+                          {mode === 'system' ? 'Auto' : mode === 'light' ? 'Light' : 'Dark'}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -287,7 +293,10 @@ export default function SettingsScreen({ onBack }: Props) {
                       disabled={locStatus === 'locating'}
                       className={['w-full py-2.5 rounded-xl border text-[13px] font-semibold transition-colors', s.useGeolocation ? 'bg-secondary border-primary text-primary' : 'bg-card border-border text-foreground'].join(' ')}
                     >
-                      {locStatus === 'locating' ? 'Locating…' : s.useGeolocation ? '📍 Using my location' : '📍 Use my location'}
+                      <span className="inline-flex items-center justify-center gap-1.5">
+                        {locStatus !== 'locating' && <LuMapPin />}
+                        {locStatus === 'locating' ? 'Locating…' : s.useGeolocation ? 'Using my location' : 'Use my location'}
+                      </span>
                     </button>
                     {locStatus === 'unavailable' && (
                       <p className="text-[12px] text-muted-fg mt-2">Location isn't available (unsupported or permission denied) — pick a city below instead.</p>

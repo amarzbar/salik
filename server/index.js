@@ -45,7 +45,7 @@ app.post('/api/push/unsubscribe', (req, res) => {
 });
 
 app.post('/api/push/test', async (req, res) => {
-  await push.sendToAll({ title: 'Salik', body: 'Test notification 🔔', url: '/' });
+  await push.sendToAll({ title: 'Salik', body: 'Test notification', url: '/' });
   res.json({ ok: true });
 });
 

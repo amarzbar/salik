@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useAppStore, todayKey, activeDate, toDateKey, dateFromKey } from '../store';
 import VoiceNoteButton from '../components/VoiceNoteButton';
+import { LuNotebook } from 'react-icons/lu';
 import { gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { PRAYERS, type PrayerStatus } from '../store';
 
@@ -174,7 +175,7 @@ export default function JournalScreen() {
           </div>
         ) : (
           <div className="mx-4 text-center py-10">
-            <p className="text-4xl mb-3">📓</p>
+            <LuNotebook className="text-[40px] text-muted-fg mx-auto mb-3" />
             <p className="text-[15px] font-medium text-foreground mb-1">
               {search ? 'No entries match your search' : 'No past entries yet'}
             </p>
