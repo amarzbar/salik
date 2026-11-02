@@ -204,3 +204,15 @@ body {
 .no-transition, .no-transition * {
   transition: none !important;
 }
+
+/* iOS-style push: settings sub-pages slide in from the right */
+@keyframes settings-slide-in {
+  from { transform: translateX(14px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.settings-subpage {
+  animation: settings-slide-in 0.22s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-subpage { animation: none; }
+}

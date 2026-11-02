@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
-import { todayHijri, HIJRI_MONTHS, formatHijriDate } from '../utils/hijri';
+import { todayHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
-import { nextUpcomingEvent, eventsForDay, EVENT_COLOR_CLASSES } from '../data/islamicEvents';
+import { eventsForDay } from '../data/islamicEvents';
+import { reminderForDay } from '../data/reminders';
+import { computeBadges, longestRun } from '../data/badges';
 import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, type PrayerStatus } from '../store';
+import ProgressRing from '../components/ProgressRing';
 import VoiceNoteButton from '../components/VoiceNoteButton';
 import { usePrayerTap } from '../components/PrayerStatusSheet';
 import EventDetailModal from '../components/EventDetailModal';
@@ -17,32 +20,14 @@ const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: str
   missed:  { label: 'Missed',  bg: 'bg-red-400',     text: 'text-white' },
 };
 
-function ProgressRing({ value, max, size = 88 }: { value: number; max: number; size?: number }) {
-  const r = (size - 10) / 2;
-  const circ = 2 * Math.PI * r;
-  const offset = circ * (1 - Math.min(value / max, 1));
-  return (
-    <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }}>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth="7" />
-      <circle
-        cx={size / 2} cy={size / 2} r={r}
-        fill="none"
-        stroke="var(--primary)"
-        strokeWidth="7"
-        strokeDasharray={`${circ}`}
-        strokeDashoffset={`${offset}`}
-        strokeLinecap="round"
-        style={{ transition: 'stroke-dashoffset 0.4s ease' }}
-      />
-    </svg>
-  );
-}
+const KEPT: PrayerStatus[] = ['ontime', 'late', 'qada'];
+const isKept = (s: PrayerStatus | undefined) => !!s && KEPT.includes(s);
 
 interface Props { onNavigate: (tab: TabId) => void; }
 
 export default function TodayScreen({ onNavigate }: Props) {
   const prayerTap = usePrayerTap();
-  const { state, setDhikr, toggleDhikrSub, incSalawat, resetSalawat } = useAppStore();
+  const { state, setDhikr, setJournal, prayerStreak } = useAppStore();
   const todayK = todayKey();
   const today = activeDate();
   const hijri = useMemo(() => todayHijri(activeDate()), []);
@@ -55,11 +40,10 @@ export default function TodayScreen({ onNavigate }: Props) {
     [loc.lat, loc.lng, loc.tz, state.settings.asrMethod, state.settings.angleMethod]
   );
   const activeEvents = eventsForDay(hijri.month, hijri.day);
-  const nextEvent = nextUpcomingEvent(hijri.month, hijri.day);
-  const salawatCount = state.salawat[todayK] ?? 0;
+  const reminder = useMemo(() => reminderForDay(today), [todayK]);
   const [selectedEvent, setSelectedEvent] = useState<IslamicEvent | null>(null);
+  const [journalOpen, setJournalOpen] = useState<boolean>(!!state.journal[todayK]?.text);
   const [journalText, setJournalText] = useState(state.journal[todayK]?.text ?? '');
-  const { setJournal } = useAppStore();
 
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
   const gregDate = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -67,14 +51,24 @@ export default function TodayScreen({ onNavigate }: Props) {
     fajr: times.fajr, dhuhr: times.dhuhr, asr: times.asr, maghrib: times.maghrib, isha: times.isha,
   };
 
-  const completedPrayers = PRAYERS.filter(p => {
-    const s = state.prayers[todayK]?.[p];
-    return s === 'ontime' || s === 'late' || s === 'qada';
-  }).length;
+  const completedPrayers = PRAYERS.filter(p => isKept(state.prayers[todayK]?.[p])).length;
+
+  const { currentStreak, bestStreak, badges, nextMilestone } = useMemo(() => {
+    const completeDayKeys = Object.keys(state.prayers).filter(k => PRAYERS.every(p => isKept(state.prayers[k]?.[p])));
+    const lifetimeSalawat = Object.values(state.salawat).reduce((a, b) => a + (b || 0), 0);
+    const totalPrayers = Object.values(state.prayers).reduce(
+      (a, day) => a + PRAYERS.filter(p => isKept(day?.[p])).length, 0
+    );
+    const cs = prayerStreak();
+    const { earned, next } = computeBadges({ currentStreak: cs, completeDayKeys, lifetimeSalawat, totalPrayers });
+    return { currentStreak: cs, bestStreak: Math.max(cs, longestRun(completeDayKeys)), badges: earned, nextMilestone: next };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.prayers, state.salawat]);
 
   return (
     <div className="px-4 pt-3 pb-6 space-y-4">
       {prayerTap.sheet}
+
       {/* Date header */}
       <div className="px-1">
         <p className="text-[13px] font-medium text-muted-fg uppercase tracking-widest mb-0.5">{dayName}</p>
@@ -102,33 +96,67 @@ export default function TodayScreen({ onNavigate }: Props) {
             <p className="font-semibold text-[15px] text-foreground truncate">{activeEvents[0].title}</p>
             <p className="text-[13px] text-muted-fg truncate">{activeEvents[0].description}</p>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-fg flex-shrink-0">
-            <path d="M9 18l6-6-6-6"/>
-          </svg>
+          <Chevron />
         </button>
       )}
 
-      {/* Next event teaser (if no active event) */}
-      {activeEvents.length === 0 && nextEvent && (
-        <button
-          onClick={() => setSelectedEvent(nextEvent)}
-          className="w-full flex items-center gap-3 p-3.5 rounded-xl bg-card border border-border text-left transition active:scale-[0.99]"
-        >
-          <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-primary">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
+      {/* Streak hero */}
+      <div className="rounded-2xl border border-border bg-gradient-to-br from-secondary to-card p-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <span className="text-[40px] leading-none">{currentStreak > 0 ? '🔥' : '🌱'}</span>
+            <div>
+              <p className="text-[34px] font-bold leading-none text-foreground tabular-nums">{currentStreak}</p>
+              <p className="text-[13px] text-muted-fg mt-1">day prayer streak</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[12px] text-muted-fg uppercase tracking-widest font-medium">Upcoming</p>
-            <p className="text-[14px] font-semibold text-foreground truncate">{nextEvent.title}</p>
+          <ProgressRing value={completedPrayers} max={5} size={76}>
+            <p className="text-[17px] font-bold text-foreground leading-none tabular-nums">{completedPrayers}<span className="text-[12px] text-muted-fg">/5</span></p>
+            <p className="text-[9px] text-muted-fg uppercase tracking-wider mt-0.5">today</p>
+          </ProgressRing>
+        </div>
+        {/* Next milestone progress */}
+        {nextMilestone && (
+          <div className="mt-4">
+            <div className="flex items-center justify-between text-[12px] mb-1.5">
+              <span className="text-muted-fg">Next: {nextMilestone.emoji} {nextMilestone.label}</span>
+              <span className="text-muted-fg tabular-nums">{Math.min(nextMilestone.current, nextMilestone.target)}/{nextMilestone.target}</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-500"
+                style={{ width: `${Math.min(100, (nextMilestone.current / nextMilestone.target) * 100)}%` }}
+              />
+            </div>
           </div>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-fg flex-shrink-0">
-            <path d="M9 18l6-6-6-6"/>
-          </svg>
-        </button>
+        )}
+        {bestStreak > currentStreak && (
+          <p className="text-[12px] text-muted-fg mt-3">Best streak: <span className="font-semibold text-foreground">{bestStreak} days</span></p>
+        )}
+      </div>
+
+      {/* Badges */}
+      {badges.length > 0 && (
+        <div className="bg-card rounded-2xl border border-border p-4">
+          <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-3">Achievements</h3>
+          <div className="flex flex-wrap gap-2">
+            {badges.map(b => (
+              <span key={b.id} className="inline-flex items-center gap-1.5 py-1.5 px-2.5 rounded-full bg-secondary border border-primary/15 text-[12px] font-medium text-foreground">
+                <span className="text-[14px] leading-none">{b.emoji}</span>{b.label}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
+
+      {/* Reminder of the day */}
+      <div className="rounded-2xl border border-accent/25 bg-accent/5 p-4">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-accent mb-2">
+          {reminder.kind === 'quran' ? "Qur'an · Reflection" : 'Hadith · Reflection'}
+        </p>
+        <p className="text-[15px] leading-relaxed text-foreground">“{reminder.text}”</p>
+        <p className="text-[12px] text-muted-fg mt-2">— {reminder.source}</p>
+      </div>
 
       {/* Prayers card */}
       <div className="bg-card rounded-2xl border border-border overflow-hidden">
@@ -166,65 +194,8 @@ export default function TodayScreen({ onNavigate }: Props) {
           onClick={() => onNavigate('prayers')}
           className="w-full flex items-center justify-center gap-1 py-3 text-[13px] text-primary font-medium border-t border-border"
         >
-          View prayer history
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M9 18l6-6-6-6"/>
-          </svg>
+          View prayer history <Chevron small />
         </button>
-      </div>
-
-      {/* Salawat counter */}
-      <div className="bg-card rounded-2xl border border-border p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-0.5">Salawat</h3>
-            <p className="text-[13px] text-muted-fg font-arabic">الصلاة على النبي ﷺ</p>
-          </div>
-          <div className="relative flex items-center justify-center">
-            <ProgressRing value={salawatCount} max={state.salawatGoal} />
-            <div className="absolute text-center">
-              <p className="text-[18px] font-bold text-foreground leading-none">{salawatCount}</p>
-              <p className="text-[10px] text-muted-fg">/{state.salawatGoal}</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => incSalawat(todayK)}
-            className="flex-1 py-3 rounded-xl bg-primary text-primary-fg font-semibold text-[15px] transition active:scale-[0.97]"
-          >
-            + 1
-          </button>
-          <button
-            onClick={() => incSalawat(todayK, 10)}
-            className="flex-1 py-3 rounded-xl bg-secondary text-primary font-semibold text-[15px] transition active:scale-[0.97]"
-          >
-            + 10
-          </button>
-          <button
-            onClick={() => incSalawat(todayK, 100)}
-            className="flex-1 py-3 rounded-xl bg-secondary text-primary font-semibold text-[15px] transition active:scale-[0.97]"
-          >
-            + 100
-          </button>
-        </div>
-        <div className="flex items-center justify-center gap-4 mt-2">
-          <button
-            onClick={() => incSalawat(todayK, -1)}
-            disabled={salawatCount <= 0}
-            className="text-[12px] text-muted-fg disabled:opacity-40"
-          >
-            − 1 (undo)
-          </button>
-          <span className="text-muted-fg/40">·</span>
-          <button
-            onClick={() => { if (salawatCount > 0 && window.confirm(`Reset today's Salawat count from ${salawatCount} to 0?`)) resetSalawat(todayK); }}
-            disabled={salawatCount <= 0}
-            className="text-[12px] text-muted-fg disabled:opacity-40"
-          >
-            Reset count
-          </button>
-        </div>
       </div>
 
       {/* Dhikr quick view */}
@@ -235,21 +206,12 @@ export default function TodayScreen({ onNavigate }: Props) {
         <div className="divide-y divide-border">
           {DHIKR_DEFS.slice(0, 4).map(def => {
             const val = state.dhikr[todayK]?.[def.id];
-            let done: boolean;
-            if (def.subItems && Array.isArray(val)) {
-              done = (val as boolean[]).every(Boolean);
-            } else {
-              done = val === true;
-            }
+            const done = def.subItems && Array.isArray(val) ? (val as boolean[]).every(Boolean) : val === true;
             return (
               <button
                 key={def.id}
                 onClick={() => {
-                  if (def.subItems) {
-                    // Can't toggle sub-items from quick view — navigate instead
-                    onNavigate('dhikr');
-                    return;
-                  }
+                  if (def.subItems) { onNavigate('dhikr'); return; }
                   setDhikr(todayK, def.id, !done);
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 transition active:bg-muted"
@@ -265,9 +227,7 @@ export default function TodayScreen({ onNavigate }: Props) {
                   )}
                 </span>
                 <div className="flex-1 min-w-0 text-left">
-                  <p className={`text-[14px] font-medium ${done ? 'text-muted-fg line-through' : 'text-foreground'}`}>
-                    {def.name}
-                  </p>
+                  <p className={`text-[14px] font-medium ${done ? 'text-muted-fg line-through' : 'text-foreground'}`}>{def.name}</p>
                   <p className="text-[12px] text-muted-fg capitalize">{def.prayerTime === 'all' ? 'After each prayer' : `After ${def.prayerTime}`}</p>
                 </div>
               </button>
@@ -278,49 +238,65 @@ export default function TodayScreen({ onNavigate }: Props) {
           onClick={() => onNavigate('dhikr')}
           className="w-full flex items-center justify-center gap-1 py-3 text-[13px] text-primary font-medium border-t border-border"
         >
-          View all dhikr
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <path d="M9 18l6-6-6-6"/>
-          </svg>
+          View all dhikr &amp; salawat <Chevron small />
         </button>
       </div>
 
-      {/* Journal quick entry */}
-      <div className="bg-card rounded-2xl border border-border p-4">
-        <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-3">Today's Journal</h3>
-        <textarea
-          value={journalText}
-          onChange={e => setJournalText(e.target.value)}
-          onBlur={() => { if (journalText.trim()) setJournal(todayK, journalText); }}
-          placeholder="Write something to remember today…"
-          rows={3}
-          className="w-full resize-none bg-muted rounded-xl p-3 text-[16px] text-foreground placeholder:text-muted-fg border-none outline-none"
-        />
-        <div className="flex items-center justify-between gap-2 mt-2">
-          <VoiceNoteButton
-            onText={t => {
-              const next = journalText.trim() ? `${journalText.trimEnd()}\n${t}` : t;
-              setJournalText(next);
-              setJournal(todayK, next);
-            }}
+      {/* Slim journal */}
+      {!journalOpen ? (
+        <button
+          onClick={() => setJournalOpen(true)}
+          className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border text-left transition active:scale-[0.99]"
+        >
+          <span className="text-[18px]">✍️</span>
+          <span className="flex-1 text-[14px] font-medium text-muted-fg">
+            {state.journal[todayK]?.text ? 'Edit today’s reflection' : 'Add a reflection'}
+          </span>
+          <Chevron small />
+        </button>
+      ) : (
+        <div className="bg-card rounded-2xl border border-border p-4">
+          <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-3">Today's Journal</h3>
+          <textarea
+            value={journalText}
+            onChange={e => setJournalText(e.target.value)}
+            onBlur={() => { if (journalText.trim()) setJournal(todayK, journalText); }}
+            placeholder="Write something to remember today…"
+            rows={3}
+            autoFocus
+            className="w-full resize-none bg-muted rounded-xl p-3 text-[16px] text-foreground placeholder:text-muted-fg border-none outline-none"
           />
-          <button
-            onClick={() => { if (journalText.trim()) { setJournal(todayK, journalText); onNavigate('journal'); } else onNavigate('journal'); }}
-            className="text-[13px] text-primary font-medium"
-          >
-            {journalText.trim() ? 'Save & view journal →' : 'Open journal →'}
-          </button>
+          <div className="flex items-center justify-between gap-2 mt-2">
+            <VoiceNoteButton
+              onText={t => {
+                const next = journalText.trim() ? `${journalText.trimEnd()}\n${t}` : t;
+                setJournalText(next);
+                setJournal(todayK, next);
+              }}
+            />
+            <button
+              onClick={() => { if (journalText.trim()) { setJournal(todayK, journalText); onNavigate('journal'); } else onNavigate('journal'); }}
+              className="text-[13px] text-primary font-medium"
+            >
+              {journalText.trim() ? 'Save & view journal →' : 'Open journal →'}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Event modal */}
       {selectedEvent && (
-        <EventDetailModal
-          event={selectedEvent}
-          hijriYear={hijri.year}
-          onClose={() => setSelectedEvent(null)}
-        />
+        <EventDetailModal event={selectedEvent} hijriYear={hijri.year} onClose={() => setSelectedEvent(null)} />
       )}
     </div>
+  );
+}
+
+function Chevron({ small }: { small?: boolean }) {
+  const n = small ? 12 : 16;
+  return (
+    <svg width={n} height={n} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" className="text-muted-fg flex-shrink-0">
+      <path d="M9 18l6-6-6-6"/>
+    </svg>
   );
 }

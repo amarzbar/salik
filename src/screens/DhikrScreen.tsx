@@ -2,6 +2,7 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { useAppStore, DHIKR_DEFS, PRAYER_LABELS, todayKey, activeDate, type DhikrId } from '../store';
 import { todayHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { DHIKR_TEXTS, TEXT_FOR_DHIKR, type DhikrTextId } from '../data/dhikrTexts';
+import ProgressRing from '../components/ProgressRing';
 
 const DhikrReader = lazy(() => import('../components/DhikrReader'));
 
@@ -21,8 +22,9 @@ function ReadButton({ onClick, label }: { onClick: () => void; label: string }) 
 }
 
 export default function DhikrScreen() {
-  const { state, setDhikr, toggleDhikrSub, dhikrStreak } = useAppStore();
+  const { state, setDhikr, toggleDhikrSub, dhikrStreak, incSalawat, resetSalawat } = useAppStore();
   const todayK = todayKey();
+  const salawatCount = state.salawat[todayK] ?? 0;
   const today = activeDate();
   const hijri = useMemo(() => todayHijri(activeDate()), []);
   const [reading, setReading] = useState<DhikrTextId | null>(null);
@@ -76,6 +78,36 @@ export default function DhikrScreen() {
               className="h-full bg-primary rounded-full transition-all duration-500"
               style={{ width: `${(doneDhikr / totalDhikr) * 100}%` }}
             />
+          </div>
+        </div>
+
+        {/* Salawat counter */}
+        <div className="mx-4 mb-4 p-4 bg-card rounded-2xl border border-border">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-0.5">Salawat</h3>
+              <p className="text-[13px] text-muted-fg font-arabic">الصلاة على النبي ﷺ</p>
+            </div>
+            <ProgressRing value={salawatCount} max={state.salawatGoal} size={80}>
+              <p className="text-[18px] font-bold text-foreground leading-none tabular-nums">{salawatCount}</p>
+              <p className="text-[10px] text-muted-fg">/{state.salawatGoal}</p>
+            </ProgressRing>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => incSalawat(todayK)} className="flex-1 py-3 rounded-xl bg-primary text-primary-fg font-semibold text-[15px] transition active:scale-[0.97]">+ 1</button>
+            <button onClick={() => incSalawat(todayK, 10)} className="flex-1 py-3 rounded-xl bg-secondary text-primary font-semibold text-[15px] transition active:scale-[0.97]">+ 10</button>
+            <button onClick={() => incSalawat(todayK, 100)} className="flex-1 py-3 rounded-xl bg-secondary text-primary font-semibold text-[15px] transition active:scale-[0.97]">+ 100</button>
+          </div>
+          <div className="flex items-center justify-center gap-4 mt-2">
+            <button onClick={() => incSalawat(todayK, -1)} disabled={salawatCount <= 0} className="text-[12px] text-muted-fg disabled:opacity-40">− 1 (undo)</button>
+            <span className="text-muted-fg/40">·</span>
+            <button
+              onClick={() => { if (salawatCount > 0 && window.confirm(`Reset today's Salawat count from ${salawatCount} to 0?`)) resetSalawat(todayK); }}
+              disabled={salawatCount <= 0}
+              className="text-[12px] text-muted-fg disabled:opacity-40"
+            >
+              Reset count
+            </button>
           </div>
         </div>
 

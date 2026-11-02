@@ -24,6 +24,9 @@ const DHIKR_DEFS = [
 const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
 const PRAYER_LABELS = { fajr: 'Fajr', dhuhr: 'Dhuhr', asr: 'Asr', maghrib: 'Maghrib', isha: 'Isha' };
 
+// Minutes after a prayer's time before its dhikr reminder is sent.
+const DHIKR_DELAY_MIN = 15;
+
 // Rotating bank of short, well-known, authentically-sourced hadith on the
 // virtue of Salah — deterministic rotation (by day-of-year), not repeats.
 const SALAH_HADITH = [
@@ -31,12 +34,22 @@ const SALAH_HADITH = [
   { text: "The five daily prayers are an expiation for the sins committed in between them, so long as major sins are avoided.", source: "Sahih Muslim" },
   { text: "Whoever guards the five prayers — perfecting their bowing, their humility, and their timing — will meet Allah with a covenant to enter Paradise.", source: "Musnad Ahmad" },
   { text: "Prayer is light.", source: "Sahih Muslim" },
-  { text: "The coolness of my eyes has been placed in prayer.", source: "Musnad Ahmad" },
+  { text: "The coolness of my eyes has been placed in prayer.", source: "Sunan al-Nasa'i" },
   { text: "Between a person and disbelief is the abandonment of prayer.", source: "Sahih Muslim" },
   { text: "Whoever prays Fajr is under the protection of Allah.", source: "Sahih Muslim" },
   { text: "The servant is closest to his Lord while prostrating, so increase your supplication then.", source: "Sahih Muslim" },
   { text: "Whoever prays the two cool prayers — Fajr and Asr — will enter Paradise.", source: "Sahih al-Bukhari & Muslim" },
   { text: "If there was a river at the door of one of you in which he bathed five times a day, would any dirt remain on him? That is the likeness of the five prayers — Allah erases sins by them.", source: "Sahih al-Bukhari & Muslim" },
+  { text: "He who prays Isha in congregation is as though he prayed half the night; and he who prays Fajr in congregation, as though he prayed the whole night.", source: "Sahih Muslim" },
+  { text: "Whoever prays twelve rak'ahs of sunnah in a day and night, a house will be built for him in Paradise.", source: "Sahih Muslim" },
+  { text: "The likeness of the one who remembers his Lord and the one who does not is that of the living and the dead.", source: "Sahih al-Bukhari" },
+  { text: "Two words light on the tongue, heavy on the Scale, beloved to the Most Merciful: SubhanAllahi wa bihamdih, SubhanAllahil-'Azim.", source: "Sahih al-Bukhari & Muslim" },
+  { text: "Keep your tongue moist with the remembrance of Allah.", source: "Sunan al-Tirmidhi" },
+  { text: "Indeed, the prayer prohibits immorality and wrongdoing, and the remembrance of Allah is greater.", source: "Qur'an 29:45" },
+  { text: "Verily, in the remembrance of Allah do hearts find rest.", source: "Qur'an 13:28" },
+  { text: "Guard strictly the prayers, especially the middle prayer, and stand before Allah devoutly obedient.", source: "Qur'an 2:238" },
+  { text: "So remember Me; I will remember you. And be grateful to Me, and do not deny Me.", source: "Qur'an 2:152" },
+  { text: "O you who believe, seek help through patience and prayer. Indeed, Allah is with the patient.", source: "Qur'an 2:153" },
 ];
 
 // ── Anti-stacking outbound queue ────────────────────────────────────────────
@@ -209,15 +222,17 @@ function tick() {
     }
   }
 
-  // ── Dhikr reminders (fire at the associated prayer time) ─────────
-  // Sent immediately like prayer reminders: they belong to a specific
-  // prayer, so holding them back makes them useless.
+  // ── Dhikr reminders ──────────────────────────────────────────────
+  // Fire DHIKR_DELAY_MIN after the prayer time, not at it — a person needs
+  // to actually pray (and the sunnah after) before being nudged to the awrad,
+  // so an immediate ping lands mid-salah and gets dismissed. ~15 min gives
+  // room to finish without the reminder feeling stale.
   if (s.dhikrNotifs) {
     for (const d of DHIKR_DEFS) {
       if (d.prayer === 'all') continue; // Salatut Ta'ziyah — reminded via each prayer's own dhikr slot
       const hour = prayerHours[d.prayer];
       const key = `${dateKey}_dhikr_${d.id}`;
-      if (!log[key] && within(hour, -2)) { // ~2 min after prayer time
+      if (!log[key] && within(hour, -DHIKR_DELAY_MIN)) {
         log[key] = true;
         sendImmediate({
           title: d.name,
