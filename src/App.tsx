@@ -21,7 +21,7 @@ const TAB_TITLES: Record<TabId, string> = {
 };
 
 export default function App() {
-  const { state } = useAppStore();
+  const { state, updateSettings } = useAppStore();
   const [activeTab, setActiveTab] = useState<TabId>('today');
   const [showSettings, setShowSettings] = useState(false);
 
@@ -42,15 +42,25 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.settings.notifications]);
 
-  // Apply dark mode class to <html>
+  // Apply dark mode + color palette to <html>
   useEffect(() => {
     const root = document.documentElement;
     const { darkMode } = state.settings;
-    // The status bar is opaque (status-bar-style "default") and takes its
-    // colour from theme-color, so keep that matched to the page background.
+    const palette = state.settings.theme ?? 'emerald';
+    root.setAttribute('data-theme', palette);
+    // Page-background per palette/mode, kept in sync with the opaque status
+    // bar (status-bar-style "default" takes its colour from theme-color).
+    const BG: Record<string, { light: string; dark: string }> = {
+      emerald:   { light: '#F9F6F2', dark: '#141210' },
+      midnight:  { light: '#F4F6FC', dark: '#0C1326' },
+      turquoise: { light: '#F2F8F7', dark: '#07201E' },
+      violet:    { light: '#F7F5FC', dark: '#130C22' },
+      rose:      { light: '#FCF5F5', dark: '#1E1012' },
+    };
     const setDark = (dark: boolean) => {
       root.classList.toggle('dark', dark);
-      document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', dark ? '#141210' : '#F9F6F2'));
+      const bg = (BG[palette] ?? BG.emerald)[dark ? 'dark' : 'light'];
+      document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', bg));
     };
 
     if (darkMode === 'dark') {
@@ -68,7 +78,21 @@ export default function App() {
     const handler = (e: MediaQueryListEvent) => apply(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, [state.settings.darkMode]);
+  }, [state.settings.darkMode, state.settings.theme]);
+
+  // One-time backfill: older installs using device geolocation stored only a
+  // fixed tzOffsetHours, which can't follow DST. Capture the device's IANA
+  // zone so prayer times (and server reminders, once synced) track DST.
+  useEffect(() => {
+    const s = state.settings;
+    if (s.useGeolocation && !s.timeZone) {
+      try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (tz) updateSettings({ timeZone: tz });
+      } catch { /* ignore */ }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!state.settings.onboardingDone) {
     return <OnboardingScreen />;

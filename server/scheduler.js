@@ -153,8 +153,8 @@ function tick() {
   if (!state || !state.settings?.notifications) return;
 
   const s = state.settings;
-  const loc = resolveLocation(s);
   const now = new Date();
+  const loc = resolveLocation(s, now);
   const dateKey = todayKeyLocal(loc.tz);
   let log = loadSentLog();
   log = pruneLog(log, dateKey);

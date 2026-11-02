@@ -106,29 +106,56 @@ export function calcPrayerTimes(
 }
 
 export interface CityDef {
-  name: string; lat: number; lng: number; tz: number;
+  name: string; lat: number; lng: number;
+  // IANA zone — the source of truth for the UTC offset, resolved per-date so
+  // it follows DST. `tz` is the standard-time offset, used only as a fallback
+  // if the Intl time-zone database is somehow unavailable.
+  timeZone: string; tz: number;
 }
 
 export const CITIES: Record<string, CityDef> = {
-  mecca:        { name: 'Mecca',          lat: 21.389, lng: 39.858,   tz: 3  },
-  medina:       { name: 'Medina',         lat: 24.468, lng: 39.614,   tz: 3  },
-  london:       { name: 'London',         lat: 51.507, lng: -0.128,   tz: 1  },
-  new_york:     { name: 'New York',       lat: 40.713, lng: -74.006,  tz: -4 },
-  chicago:      { name: 'Chicago',        lat: 41.878, lng: -87.630,  tz: -5 },
-  los_angeles:  { name: 'Los Angeles',    lat: 34.052, lng: -118.244, tz: -7 },
-  toronto:      { name: 'Toronto',        lat: 43.653, lng: -79.383,  tz: -4 },
-  dubai:        { name: 'Dubai',          lat: 25.205, lng: 55.271,   tz: 4  },
-  istanbul:     { name: 'Istanbul',       lat: 41.008, lng: 28.978,   tz: 3  },
-  cairo:        { name: 'Cairo',          lat: 30.044, lng: 31.236,   tz: 2  },
-  karachi:      { name: 'Karachi',        lat: 24.861, lng: 67.001,   tz: 5  },
-  lahore:       { name: 'Lahore',         lat: 31.558, lng: 74.352,   tz: 5  },
-  dhaka:        { name: 'Dhaka',          lat: 23.811, lng: 90.413,   tz: 6  },
-  kuala_lumpur: { name: 'Kuala Lumpur',   lat: 3.139,  lng: 101.687,  tz: 8  },
-  jakarta:      { name: 'Jakarta',        lat: -6.209, lng: 106.846,  tz: 7  },
-  paris:        { name: 'Paris',          lat: 48.857, lng: 2.347,    tz: 2  },
-  amsterdam:    { name: 'Amsterdam',      lat: 52.370, lng: 4.895,    tz: 2  },
-  berlin:       { name: 'Berlin',         lat: 52.520, lng: 13.405,   tz: 2  },
+  mecca:        { name: 'Mecca',          lat: 21.389, lng: 39.858,   timeZone: 'Asia/Riyadh',       tz: 3  },
+  medina:       { name: 'Medina',         lat: 24.468, lng: 39.614,   timeZone: 'Asia/Riyadh',       tz: 3  },
+  london:       { name: 'London',         lat: 51.507, lng: -0.128,   timeZone: 'Europe/London',     tz: 0  },
+  new_york:     { name: 'New York',       lat: 40.713, lng: -74.006,  timeZone: 'America/New_York',  tz: -5 },
+  chicago:      { name: 'Chicago',        lat: 41.878, lng: -87.630,  timeZone: 'America/Chicago',   tz: -6 },
+  los_angeles:  { name: 'Los Angeles',    lat: 34.052, lng: -118.244, timeZone: 'America/Los_Angeles', tz: -8 },
+  toronto:      { name: 'Toronto',        lat: 43.653, lng: -79.383,  timeZone: 'America/Toronto',   tz: -5 },
+  dubai:        { name: 'Dubai',          lat: 25.205, lng: 55.271,   timeZone: 'Asia/Dubai',        tz: 4  },
+  istanbul:     { name: 'Istanbul',       lat: 41.008, lng: 28.978,   timeZone: 'Europe/Istanbul',   tz: 3  },
+  cairo:        { name: 'Cairo',          lat: 30.044, lng: 31.236,   timeZone: 'Africa/Cairo',      tz: 2  },
+  karachi:      { name: 'Karachi',        lat: 24.861, lng: 67.001,   timeZone: 'Asia/Karachi',      tz: 5  },
+  lahore:       { name: 'Lahore',         lat: 31.558, lng: 74.352,   timeZone: 'Asia/Karachi',      tz: 5  },
+  dhaka:        { name: 'Dhaka',          lat: 23.811, lng: 90.413,   timeZone: 'Asia/Dhaka',        tz: 6  },
+  kuala_lumpur: { name: 'Kuala Lumpur',   lat: 3.139,  lng: 101.687,  timeZone: 'Asia/Kuala_Lumpur', tz: 8  },
+  jakarta:      { name: 'Jakarta',        lat: -6.209, lng: 106.846,  timeZone: 'Asia/Jakarta',      tz: 7  },
+  paris:        { name: 'Paris',          lat: 48.857, lng: 2.347,    timeZone: 'Europe/Paris',      tz: 1  },
+  amsterdam:    { name: 'Amsterdam',      lat: 52.370, lng: 4.895,    timeZone: 'Europe/Amsterdam',  tz: 1  },
+  berlin:       { name: 'Berlin',         lat: 52.520, lng: 13.405,   timeZone: 'Europe/Berlin',     tz: 1  },
 };
+
+// UTC offset (hours, e.g. -5 for EST, -4 for EDT) in an IANA time zone at a
+// specific instant. Uses the Intl database, so it follows DST and future
+// rule changes automatically. Returns null if the zone is unknown.
+export function offsetForTimeZone(timeZone: string, date: Date): number | null {
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const p: Record<string, string> = {};
+    for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+    return Math.round((asUTC - date.getTime()) / 60000) / 60;
+  } catch {
+    return null;
+  }
+}
+
+function deviceTimeZone(): string {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return 'UTC'; }
+}
 
 // ─── Location resolution ───────────────────────────────────────────────────
 // Prefer device geolocation when the user has enabled it and a fix is on
@@ -141,21 +168,26 @@ export interface LocationSettings {
   useGeolocation: boolean;
   lat?: number;
   lng?: number;
-  tzOffsetHours?: number;
+  timeZone?: string;     // IANA zone, DST-aware source of truth
+  tzOffsetHours?: number; // legacy fixed offset, fallback only
 }
 
-export function resolveLocation(settings: LocationSettings): ResolvedLocation {
+// Resolve location AND the correct UTC offset for the given date. Passing the
+// date matters: the offset is computed per-day, so prayer times stay correct
+// across a DST transition instead of being frozen at whatever the offset was
+// when the location was first set.
+export function resolveLocation(settings: LocationSettings, date: Date = new Date()): ResolvedLocation {
   if (settings.useGeolocation && typeof settings.lat === 'number' && typeof settings.lng === 'number') {
-    return {
-      lat: settings.lat,
-      lng: settings.lng,
-      // Local clock's own UTC offset — correct for wherever the device is
-      // physically located, and automatically DST-aware.
-      tz: settings.tzOffsetHours ?? -new Date().getTimezoneOffset() / 60,
-    };
+    const tz =
+      (settings.timeZone ? offsetForTimeZone(settings.timeZone, date) : null) ??
+      offsetForTimeZone(deviceTimeZone(), date) ??
+      settings.tzOffsetHours ??
+      -date.getTimezoneOffset() / 60;
+    return { lat: settings.lat, lng: settings.lng, tz };
   }
   const city = CITIES[settings.city] ?? CITIES.london;
-  return { lat: city.lat, lng: city.lng, tz: city.tz };
+  const tz = offsetForTimeZone(city.timeZone, date) ?? city.tz;
+  return { lat: city.lat, lng: city.lng, tz };
 }
 
 // Requests a one-shot geolocation fix. Resolves to null (never rejects) if

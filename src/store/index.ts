@@ -99,6 +99,7 @@ export interface AppState {
   settings: {
     city:              string;
     darkMode:          'system' | 'light' | 'dark';
+    theme?:            Theme; // color palette (missing = 'emerald', the original)
     notifications:     boolean;
     prayerNotifs:      boolean;
     prayerStartNotifs?: boolean; // alert the moment each prayer time enters (missing = on)
@@ -116,9 +117,22 @@ export interface AppState {
     useGeolocation:    boolean;
     lat?:              number;
     lng?:              number;
+    timeZone?:         string; // IANA zone (DST-aware); backfilled for geolocation
     tzOffsetHours?:    number;
   };
 }
+
+// Color palettes. 'emerald' is the original look; the rest are alternative
+// Islamically-themed schemes selectable in Settings → Appearance.
+export type Theme = 'emerald' | 'midnight' | 'turquoise' | 'violet' | 'rose';
+
+export const THEMES: { id: Theme; label: string; swatch: string }[] = [
+  { id: 'emerald',   label: 'Emerald',   swatch: '#1C7A52' },
+  { id: 'midnight',  label: 'Midnight',  swatch: '#2E4BA0' },
+  { id: 'turquoise', label: 'Turquoise', swatch: '#0E8F8C' },
+  { id: 'violet',    label: 'Royal',     swatch: '#6D4BB0' },
+  { id: 'rose',      label: 'Rose',      swatch: '#A6364F' },
+];
 
 const DEFAULTS: AppState = {
   prayers: {},
@@ -132,6 +146,7 @@ const DEFAULTS: AppState = {
   settings: {
     city: 'london',
     darkMode: 'system',
+    theme: 'emerald',
     notifications: false,
     prayerNotifs: true,
     prayerStartNotifs: true,
@@ -166,7 +181,7 @@ export function toDateKey(d: Date): string {
 // open and nothing rolls over until the new day's first prayer comes in.
 export function activeDate(now: Date = new Date()): Date {
   const settings = getState().settings;
-  const loc = resolveLocation(settings);
+  const loc = resolveLocation(settings, now);
   const { fajrH } = calcPrayerTimes(now, loc.lat, loc.lng, loc.tz, {
     asrMethod: settings.asrMethod,
     angleMethod: settings.angleMethod,
@@ -200,7 +215,7 @@ function computeAutoStatus(settings: AppState['settings'], dateKey: string, pray
   if (dateKey < today) return 'qada';
   if (dateKey > today) return 'ontime'; // guard; shouldn't occur in the UI
 
-  const loc = resolveLocation(settings);
+  const loc = resolveLocation(settings, dateFromKey(dateKey));
   const times = calcPrayerTimes(dateFromKey(dateKey), loc.lat, loc.lng, loc.tz, {
     asrMethod: settings.asrMethod,
     angleMethod: settings.angleMethod,

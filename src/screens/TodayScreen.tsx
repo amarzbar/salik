@@ -46,7 +46,7 @@ export default function TodayScreen({ onNavigate }: Props) {
   const todayK = todayKey();
   const today = activeDate();
   const hijri = useMemo(() => todayHijri(activeDate()), []);
-  const loc = resolveLocation(state.settings);
+  const loc = resolveLocation(state.settings, today);
   const times = useMemo(
     () => calcPrayerTimes(today, loc.lat, loc.lng, loc.tz, {
       asrMethod: state.settings.asrMethod,

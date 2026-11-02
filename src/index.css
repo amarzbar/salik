@@ -56,6 +56,68 @@
   --destructive: #EF4444;
 }
 
+/* ─── Alternative color palettes ───────────────────────────────────────────
+   Selected via Settings → Appearance; applied as data-theme on <html>.
+   Each has a light variant (:root[data-theme=…]) and a dark variant
+   (.dark[data-theme=…], listed second so it wins in dark mode). 'emerald' is
+   the base above, so it needs no override. */
+
+/* Midnight — lapis blue & gold */
+:root[data-theme="midnight"] {
+  --background: #F4F6FC; --foreground: #141A2E; --card: #FFFFFF; --card-foreground: #141A2E;
+  --primary: #2E4BA0; --primary-fg: #FFFFFF; --secondary: #E7ECFA; --secondary-fg: #2E4BA0;
+  --muted: #EEF1F8; --muted-fg: #6B7280; --accent: #C2912E; --accent-fg: #FFFFFF;
+  --border: #DDE3F0; --ring: #2E4BA0;
+}
+.dark[data-theme="midnight"] {
+  --background: #0C1326; --foreground: #E8ECF7; --card: #121A33; --card-foreground: #E8ECF7;
+  --primary: #5B82E6; --primary-fg: #08122B; --secondary: #16203F; --secondary-fg: #8FAAF0;
+  --muted: #182445; --muted-fg: #8D97B5; --accent: #D7AE4A; --accent-fg: #0A0F1F;
+  --border: #243356; --ring: #5B82E6;
+}
+
+/* Turquoise — Iznik tile & coral */
+:root[data-theme="turquoise"] {
+  --background: #F2F8F7; --foreground: #0C2321; --card: #FFFFFF; --card-foreground: #0C2321;
+  --primary: #0E8F8C; --primary-fg: #FFFFFF; --secondary: #DBF0EE; --secondary-fg: #0C6E6B;
+  --muted: #EAF3F2; --muted-fg: #5E7572; --accent: #E2674E; --accent-fg: #FFFFFF;
+  --border: #D5E6E4; --ring: #0E8F8C;
+}
+.dark[data-theme="turquoise"] {
+  --background: #07201E; --foreground: #E6F2F0; --card: #0E2B29; --card-foreground: #E6F2F0;
+  --primary: #1FB0AC; --primary-fg: #04201F; --secondary: #123330; --secondary-fg: #5FD0CB;
+  --muted: #143634; --muted-fg: #7FA09D; --accent: #F0795E; --accent-fg: #230A05;
+  --border: #1E4440; --ring: #1FB0AC;
+}
+
+/* Royal — deep violet & gold */
+:root[data-theme="violet"] {
+  --background: #F7F5FC; --foreground: #1C1430; --card: #FFFFFF; --card-foreground: #1C1430;
+  --primary: #6D4BB0; --primary-fg: #FFFFFF; --secondary: #ECE6F8; --secondary-fg: #6D4BB0;
+  --muted: #F1EDF8; --muted-fg: #6E6880; --accent: #C2912E; --accent-fg: #FFFFFF;
+  --border: #E2DBF0; --ring: #6D4BB0;
+}
+.dark[data-theme="violet"] {
+  --background: #130C22; --foreground: #EEE9F7; --card: #1C1430; --card-foreground: #EEE9F7;
+  --primary: #9A78E0; --primary-fg: #0E0820; --secondary: #241A3B; --secondary-fg: #B9A3F0;
+  --muted: #241C3A; --muted-fg: #948BAD; --accent: #D7AE4A; --accent-fg: #150B00;
+  --border: #2E2447; --ring: #9A78E0;
+}
+
+/* Rose — maroon & rose-gold */
+:root[data-theme="rose"] {
+  --background: #FCF5F5; --foreground: #2A1316; --card: #FFFFFF; --card-foreground: #2A1316;
+  --primary: #A6364F; --primary-fg: #FFFFFF; --secondary: #F7E4E7; --secondary-fg: #A6364F;
+  --muted: #F6EDEC; --muted-fg: #86706F; --accent: #C2904F; --accent-fg: #FFFFFF;
+  --border: #EDDADA; --ring: #A6364F;
+}
+.dark[data-theme="rose"] {
+  --background: #1E1012; --foreground: #F5E9EA; --card: #2A1619; --card-foreground: #F5E9EA;
+  --primary: #D1566E; --primary-fg: #1F0A0E; --secondary: #35191E; --secondary-fg: #ECA6B2;
+  --muted: #341A1D; --muted-fg: #A8908F; --accent: #D7A45E; --accent-fg: #1C0E00;
+  --border: #43272B; --ring: #D1566E;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

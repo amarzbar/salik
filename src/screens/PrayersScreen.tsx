@@ -32,7 +32,7 @@ export default function PrayersScreen() {
   const [selectedHistoryDay, setSelectedHistoryDay] = useState<string | null>(null);
   const todayK = todayKey();
   const today = activeDate();
-  const loc = resolveLocation(state.settings);
+  const loc = resolveLocation(state.settings, today);
   const times = useMemo(
     () => calcPrayerTimes(today, loc.lat, loc.lng, loc.tz, {
       asrMethod: state.settings.asrMethod,

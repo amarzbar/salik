@@ -66,36 +66,58 @@ function calcPrayerTimes(date, lat, lng, tz, opts = {}) {
 }
 
 const CITIES = {
-  mecca:        { name: 'Mecca',          lat: 21.389, lng: 39.858,   tz: 3  },
-  medina:       { name: 'Medina',         lat: 24.468, lng: 39.614,   tz: 3  },
-  london:       { name: 'London',         lat: 51.507, lng: -0.128,   tz: 1  },
-  new_york:     { name: 'New York',       lat: 40.713, lng: -74.006,  tz: -4 },
-  chicago:      { name: 'Chicago',        lat: 41.878, lng: -87.630,  tz: -5 },
-  los_angeles:  { name: 'Los Angeles',    lat: 34.052, lng: -118.244, tz: -7 },
-  toronto:      { name: 'Toronto',        lat: 43.653, lng: -79.383,  tz: -4 },
-  dubai:        { name: 'Dubai',          lat: 25.205, lng: 55.271,   tz: 4  },
-  istanbul:     { name: 'Istanbul',       lat: 41.008, lng: 28.978,   tz: 3  },
-  cairo:        { name: 'Cairo',          lat: 30.044, lng: 31.236,   tz: 2  },
-  karachi:      { name: 'Karachi',        lat: 24.861, lng: 67.001,   tz: 5  },
-  lahore:       { name: 'Lahore',         lat: 31.558, lng: 74.352,   tz: 5  },
-  dhaka:        { name: 'Dhaka',          lat: 23.811, lng: 90.413,   tz: 6  },
-  kuala_lumpur: { name: 'Kuala Lumpur',   lat: 3.139,  lng: 101.687,  tz: 8  },
-  jakarta:      { name: 'Jakarta',        lat: -6.209, lng: 106.846,  tz: 7  },
-  paris:        { name: 'Paris',          lat: 48.857, lng: 2.347,    tz: 2  },
-  amsterdam:    { name: 'Amsterdam',      lat: 52.370, lng: 4.895,    tz: 2  },
-  berlin:       { name: 'Berlin',         lat: 52.520, lng: 13.405,   tz: 2  },
+  mecca:        { name: 'Mecca',          lat: 21.389, lng: 39.858,   timeZone: 'Asia/Riyadh',       tz: 3  },
+  medina:       { name: 'Medina',         lat: 24.468, lng: 39.614,   timeZone: 'Asia/Riyadh',       tz: 3  },
+  london:       { name: 'London',         lat: 51.507, lng: -0.128,   timeZone: 'Europe/London',     tz: 0  },
+  new_york:     { name: 'New York',       lat: 40.713, lng: -74.006,  timeZone: 'America/New_York',  tz: -5 },
+  chicago:      { name: 'Chicago',        lat: 41.878, lng: -87.630,  timeZone: 'America/Chicago',   tz: -6 },
+  los_angeles:  { name: 'Los Angeles',    lat: 34.052, lng: -118.244, timeZone: 'America/Los_Angeles', tz: -8 },
+  toronto:      { name: 'Toronto',        lat: 43.653, lng: -79.383,  timeZone: 'America/Toronto',   tz: -5 },
+  dubai:        { name: 'Dubai',          lat: 25.205, lng: 55.271,   timeZone: 'Asia/Dubai',        tz: 4  },
+  istanbul:     { name: 'Istanbul',       lat: 41.008, lng: 28.978,   timeZone: 'Europe/Istanbul',   tz: 3  },
+  cairo:        { name: 'Cairo',          lat: 30.044, lng: 31.236,   timeZone: 'Africa/Cairo',      tz: 2  },
+  karachi:      { name: 'Karachi',        lat: 24.861, lng: 67.001,   timeZone: 'Asia/Karachi',      tz: 5  },
+  lahore:       { name: 'Lahore',         lat: 31.558, lng: 74.352,   timeZone: 'Asia/Karachi',      tz: 5  },
+  dhaka:        { name: 'Dhaka',          lat: 23.811, lng: 90.413,   timeZone: 'Asia/Dhaka',        tz: 6  },
+  kuala_lumpur: { name: 'Kuala Lumpur',   lat: 3.139,  lng: 101.687,  timeZone: 'Asia/Kuala_Lumpur', tz: 8  },
+  jakarta:      { name: 'Jakarta',        lat: -6.209, lng: 106.846,  timeZone: 'Asia/Jakarta',      tz: 7  },
+  paris:        { name: 'Paris',          lat: 48.857, lng: 2.347,    timeZone: 'Europe/Paris',      tz: 1  },
+  amsterdam:    { name: 'Amsterdam',      lat: 52.370, lng: 4.895,    timeZone: 'Europe/Amsterdam',  tz: 1  },
+  berlin:       { name: 'Berlin',         lat: 52.520, lng: 13.405,   timeZone: 'Europe/Berlin',     tz: 1  },
 };
 
-function resolveLocation(settings) {
-  if (settings.useGeolocation && typeof settings.lat === 'number' && typeof settings.lng === 'number') {
-    return {
-      lat: settings.lat,
-      lng: settings.lng,
-      tz: typeof settings.tzOffsetHours === 'number' ? settings.tzOffsetHours : 0,
-    };
+// UTC offset (hours) in an IANA zone at a specific instant — DST-aware via the
+// Intl database. Mirrors offsetForTimeZone() in src/utils/prayerTimes.ts.
+function offsetForTimeZone(timeZone, date) {
+  try {
+    const dtf = new Intl.DateTimeFormat('en-US', {
+      timeZone, hourCycle: 'h23',
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+    });
+    const p = {};
+    for (const part of dtf.formatToParts(date)) p[part.type] = part.value;
+    const asUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+    return Math.round((asUTC - date.getTime()) / 60000) / 60;
+  } catch {
+    return null;
   }
-  const city = CITIES[settings.city] || CITIES.london;
-  return { lat: city.lat, lng: city.lng, tz: city.tz };
 }
 
-module.exports = { calcPrayerTimes, CITIES, fixH, resolveLocation };
+// Compute the UTC offset for the given date, so reminders fire at the right
+// wall-clock time across DST changes. The client syncs settings.timeZone (its
+// IANA zone); we never rely on the server's own zone for the user's location.
+function resolveLocation(settings, date = new Date()) {
+  if (settings.useGeolocation && typeof settings.lat === 'number' && typeof settings.lng === 'number') {
+    let tz = settings.timeZone ? offsetForTimeZone(settings.timeZone, date) : null;
+    if (tz === null || tz === undefined) {
+      tz = typeof settings.tzOffsetHours === 'number' ? settings.tzOffsetHours : 0;
+    }
+    return { lat: settings.lat, lng: settings.lng, tz };
+  }
+  const city = CITIES[settings.city] || CITIES.london;
+  const tz = offsetForTimeZone(city.timeZone, date);
+  return { lat: city.lat, lng: city.lng, tz: tz === null ? city.tz : tz };
+}
+
+module.exports = { calcPrayerTimes, CITIES, fixH, resolveLocation, offsetForTimeZone };

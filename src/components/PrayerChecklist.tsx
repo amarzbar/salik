@@ -22,7 +22,7 @@ interface Props {
 export default function PrayerChecklist({ dateKey }: Props) {
   const { state } = useAppStore();
   const prayerTap = usePrayerTap();
-  const loc = resolveLocation(state.settings);
+  const loc = resolveLocation(state.settings, dateFromKey(dateKey));
   const times = useMemo(
     () => calcPrayerTimes(dateFromKey(dateKey), loc.lat, loc.lng, loc.tz, {
       asrMethod: state.settings.asrMethod,

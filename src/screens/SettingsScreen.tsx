@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CITIES, ANGLE_METHODS, ASR_METHODS, requestGeolocation, type AngleMethodId, type AsrMethod } from '../utils/prayerTimes';
-import { useAppStore } from '../store';
+import { useAppStore, THEMES, type Theme } from '../store';
 import { subscribeToPush, unsubscribeFromPush } from '../push';
 
 interface Props { onBack: () => void; }
@@ -74,10 +74,13 @@ export default function SettingsScreen({ onBack }: Props) {
       setLocStatus('unavailable');
       return;
     }
+    let timeZone: string | undefined;
+    try { timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { timeZone = undefined; }
     updateSettings({
       useGeolocation: true,
       lat: pos.lat,
       lng: pos.lng,
+      timeZone,
       tzOffsetHours: -new Date().getTimezoneOffset() / 60,
     });
     setLocStatus('idle');
@@ -209,6 +212,31 @@ export default function SettingsScreen({ onBack }: Props) {
                   {mode === 'system' ? '⚙️ Auto' : mode === 'light' ? '☀️ Light' : '🌙 Dark'}
                 </button>
               ))}
+            </div>
+            <p className="text-[13px] text-muted-fg mt-5 mb-3">Color theme.</p>
+            <div className="grid grid-cols-5 gap-2">
+              {THEMES.map(t => {
+                const active = (s.theme ?? 'emerald') === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => updateSettings({ theme: t.id as Theme })}
+                    aria-label={t.label}
+                    className={[
+                      'flex flex-col items-center gap-1.5 py-2.5 rounded-xl border transition-colors',
+                      active ? 'border-primary bg-secondary' : 'border-border bg-card',
+                    ].join(' ')}
+                  >
+                    <span
+                      className="w-6 h-6 rounded-full border border-black/10 shadow-sm"
+                      style={{ backgroundColor: t.swatch }}
+                    />
+                    <span className={['text-[11px] font-medium', active ? 'text-primary' : 'text-muted-fg'].join(' ')}>
+                      {t.label}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </Section>
