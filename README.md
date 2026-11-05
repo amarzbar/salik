@@ -9,15 +9,18 @@ in one installable PWA. Self-hostable for your ownership.
 
 ## Features
 
-- **Today**: Hijri and Gregorian date, the next Islamic observance, today's
-  prayers with their times, and a salawat counter with a daily goal.
+- **Today**: a prayer-streak hero with today's five-prayer ring and the next
+  milestone, earned achievement badges, a rotating reminder (a hadith or ayah
+  on the virtue of salah), the Hijri and Gregorian date, today's prayers, a
+  dhikr summary, and a slim daily reflection.
 - **Prayers**: tap a prayer to mark it. On-time, late and qada' are detected
   from the clock and each prayer's actual window (Fajr closes at sunrise, not
   Dhuhr). Missed is an explicit choice. Shows the streak, the monthly rate and
   the history.
 - **Dhikr**: the daily awrad tied to prayer times (Wirdul Aam after Fajr and
   Maghrib, Hasbunallah after Dhuhr, Hizbul Bahr after Asr, Salatut Ta'ziyah
-  after each prayer), each with its own streak.
+  after each prayer), each with its own streak. The salawat counter with a
+  daily goal lives here too.
 - **Calendar**: a Hijri month view with Gregorian dates, Islamic events and
   their action items, plus community and halaqah notes.
 - **Journal**: one entry per day with a snapshot of that day's prayers and
@@ -25,16 +28,18 @@ in one installable PWA. Self-hostable for your ownership.
 - **Push notifications** (Web Push, works on iOS 16.4+ when installed to the
   home screen):
   - prayer reminders, sent a configurable number of minutes before each prayer
-  - dhikr reminders
+  - a "prayer has entered" alert at each prayer time
+  - dhikr reminders, about 15 minutes after each prayer (time to pray first)
   - Islamic event reminders
   - a daily hadith on the virtue of salah
   - an evening nudge for prayers you haven't marked yet
 
-  Non-prayer notifications are spaced at least 3 hours apart so they never pile
-  up on the lock screen. Prayer reminders are never delayed.
-- **Settings**: city preset or device location, Asr method (Hanafi or
-  Shafi'i), Fajr/Isha angle method (MWL, ISNA, Karachi, Egyptian), and light,
-  dark or system theme.
+  Non-prayer notifications are spaced at least 30 minutes apart so they never
+  pile up on the lock screen. Prayer reminders are never delayed.
+- **Settings**: organised into nested sections (iOS-style). City preset or
+  device location, Asr method (Hanafi or Shafi'i), Fajr/Isha angle method
+  (MWL, ISNA, Karachi, Egyptian), light/dark/system mode, and five colour
+  themes (Emerald, Midnight, Turquoise, Royal, Rose).
 
 | Today | Prayers | Dhikr |
 | :---: | :---: | :---: |
