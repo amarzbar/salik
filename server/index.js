@@ -63,8 +63,13 @@ const TEXT_SOURCES = {
   mashishiyyah: 'https://shaykhfaisal.com/wp-content/uploads/2021/03/SALAWAAT-05-AL-SALAT-AL-MASHISHIYYAH-06-Text-Arabic-English-Transliteration.pdf',
 };
 const TEXTS_DIR = path.join(store.DATA_DIR, 'texts');
+// Texts that aren't on the Shaykh's site ship with the app in server/texts/.
+const BUNDLED_TEXTS = new Set(['dua_after_dhikr']);
 
 app.get('/api/texts/:id.pdf', async (req, res) => {
+  if (BUNDLED_TEXTS.has(req.params.id)) {
+    return res.type('application/pdf').sendFile(path.join(__dirname, 'texts', `${req.params.id}.pdf`));
+  }
   const src = TEXT_SOURCES[req.params.id];
   if (!src) return res.status(404).end();
   const file = path.join(TEXTS_DIR, `${req.params.id}.pdf`);

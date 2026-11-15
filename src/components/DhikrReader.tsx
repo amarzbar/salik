@@ -6,19 +6,22 @@
 import { useEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
-import { pdfUrl, textById, type DhikrTextId } from '../data/dhikrTexts';
+import { pdfUrl, textById, DUA_AFTER_DHIKR, type DhikrTextId } from '../data/dhikrTexts';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
 interface Props {
   textId: DhikrTextId;
   onClose: () => void;
+  onOpenText: (id: DhikrTextId) => void;
 }
 
 const ZOOMS = [1, 1.5, 2];
 
-export default function DhikrReader({ textId, onClose }: Props) {
+export default function DhikrReader({ textId, onClose, onOpenText }: Props) {
   const text = textById(textId);
+  const dua = textById(DUA_AFTER_DHIKR);
+  const [pagesDrawn, setPagesDrawn] = useState(false);
   const pagesRef = useRef<HTMLDivElement>(null);
   const [doc, setDoc] = useState<pdfjs.PDFDocumentProxy | null>(null);
   const [error, setError] = useState(false);
@@ -43,6 +46,7 @@ export default function DhikrReader({ textId, onClose }: Props) {
     if (!doc || !host) return;
     let cancelled = false;
     host.replaceChildren();
+    setPagesDrawn(false);
     const cssWidth = host.clientWidth * ZOOMS[zoomIdx];
     const dpr = window.devicePixelRatio || 1;
 
@@ -59,6 +63,7 @@ export default function DhikrReader({ textId, onClose }: Props) {
         host.appendChild(canvas);
         await page.render({ canvasContext: canvas.getContext('2d')!, viewport }).promise;
       }
+      if (!cancelled) setPagesDrawn(true);
     })();
     return () => { cancelled = true; };
   }, [doc, zoomIdx]);
@@ -100,6 +105,23 @@ export default function DhikrReader({ textId, onClose }: Props) {
           <div className="text-center text-muted-fg text-[14px] py-16">Loading…</div>
         ) : null}
         <div ref={pagesRef} />
+
+        {/* Every dhikr ends with the du'ā', so offer it once the last page is drawn */}
+        {pagesDrawn && textId !== DUA_AFTER_DHIKR && (
+          <button
+            onClick={() => onOpenText(DUA_AFTER_DHIKR)}
+            className="w-full flex items-center gap-3 px-4 py-3.5 mt-1 mb-3 bg-card rounded-2xl border border-border transition active:bg-muted text-left"
+          >
+            <div className="flex-1 min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">Next</p>
+              <p className="text-[15px] font-semibold text-foreground">{dua.title}</p>
+              <p className="font-arabic text-[14px] text-muted-fg">{dua.titleAr}</p>
+            </div>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-fg flex-shrink-0">
+              <path d="M9 18l6-6-6-6"/>
+            </svg>
+          </button>
+        )}
       </div>
 
       {text.audio && <MiniPlayer src={text.audio} title={text.title} />}

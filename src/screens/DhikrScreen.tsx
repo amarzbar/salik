@@ -267,13 +267,13 @@ export default function DhikrScreen() {
               </div>
             ))}
           </div>
-          <p className="text-[12px] text-muted-fg mt-2 px-1">From shaykhfaisal.com · Arabic, transliteration and English, with audio.</p>
+          <p className="text-[12px] text-muted-fg mt-2 px-1">From shaykhfaisal.com · Arabic, transliteration and English, with audio. The du&apos;ā&apos; after dhikr is from the Halaqah and has no recording.</p>
         </div>
       </div>
 
       {reading && (
         <Suspense fallback={null}>
-          <DhikrReader textId={reading} onClose={() => setReading(null)} />
+          <DhikrReader key={reading} textId={reading} onClose={() => setReading(null)} onOpenText={setReading} />
         </Suspense>
       )}
     </div>

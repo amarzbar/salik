@@ -3,11 +3,14 @@
 // The PDFs are not stored in this repo: the server fetches each one from
 // shaykhfaisal.com the first time it is opened and keeps a copy in its data
 // folder (see /api/texts in server/index.js). Audio streams from the site.
+// The du'ā' after dhikr isn't on the site, so its PDF ships in server/texts/
+// and it has no recording.
 
 import type { DhikrId } from '../store';
 
 export type DhikrTextId =
-  | 'wirdul_aam' | 'salat_taziyyah' | 'hasbunallah' | 'hizbul_bahr' | 'latifiyyah' | 'mashishiyyah';
+  | 'wirdul_aam' | 'salat_taziyyah' | 'hasbunallah' | 'hizbul_bahr' | 'latifiyyah' | 'mashishiyyah'
+  | 'dua_after_dhikr';
 
 export interface DhikrText {
   id: DhikrTextId;
@@ -25,7 +28,11 @@ export const DHIKR_TEXTS: DhikrText[] = [
   { id: 'hizbul_bahr',    title: 'Hizbul Bahr',           titleAr: 'حِزب البحر',            audio: `${SITE}/wp-content/uploads/custom/HizbulBahar.mp3` },
   { id: 'latifiyyah',     title: 'Al-Latīfiyyah',         titleAr: 'اللطيفية',              audio: `${SITE}/wp-content/uploads/custom/AL-LATIFIYYAH.mp3` },
   { id: 'mashishiyyah',   title: 'Al-Ṣalāt Al-Mashīshiyyah', titleAr: 'الصلاة المشيشية',   audio: `${SITE}/wp-content/uploads/2021/01/AL-SALAT-AL-MASHISHIYYAH-03.mp3` },
+  { id: 'dua_after_dhikr', title: "Du'ā' After Dhikr",    titleAr: 'الدعاء بعد الذكر' },
 ];
+
+// Recited after every dhikr; each text's reader links to it at the end.
+export const DUA_AFTER_DHIKR: DhikrTextId = 'dua_after_dhikr';
 
 // Which text goes with each tracked daily dhikr.
 export const TEXT_FOR_DHIKR: Record<DhikrId, DhikrTextId> = {
