@@ -114,8 +114,10 @@ export default function DhikrReader({ textId, onClose, onOpenText }: Props) {
           >
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-fg">Next</p>
-              <p className="text-[15px] font-semibold text-foreground">{dua.title}</p>
-              <p className="font-arabic text-[14px] text-muted-fg">{dua.titleAr}</p>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="min-w-0 truncate text-[15px] font-semibold text-foreground">{dua.title}</p>
+                <p className="font-arabic text-[14px] text-muted-fg flex-shrink-0">{dua.titleAr}</p>
+              </div>
             </div>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-fg flex-shrink-0">
               <path d="M9 18l6-6-6-6"/>

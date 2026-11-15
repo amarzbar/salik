@@ -43,11 +43,14 @@ export default function PrayersScreen() {
   const hijri = useMemo(() => todayHijri(activeDate()), []);
   const streak = prayerStreak();
 
-  // Last 28 days for heatmap
+  // Heatmap: whole Sunday-to-Saturday weeks covering about the past month, from
+  // the Sunday four weeks before this week's up to today (29–35 days), so the
+  // grid always starts under the S column.
   const heatmapDays = useMemo(() => {
-    return Array.from({ length: 28 }, (_, i) => {
+    const count = 29 + today.getDay();
+    return Array.from({ length: count }, (_, i) => {
       const d = new Date(today);
-      d.setDate(d.getDate() - (27 - i));
+      d.setDate(d.getDate() - (count - 1 - i));
       const key = toDateKey(d);
       const dayPrayers = state.prayers[key] ?? {};
       const completed = PRAYERS.filter(p => {
@@ -67,10 +70,10 @@ export default function PrayersScreen() {
     return s === 'ontime' || s === 'late' || s === 'qada';
   }).length;
 
-  // Monthly stats
+  // Last 30 days, today included (rolling, so it doesn't reset on the 1st)
   const monthStats = useMemo(() => {
     const d = new Date(today);
-    d.setDate(1);
+    d.setDate(d.getDate() - 29);
     let total = 0, completed = 0;
     while (d <= today) {
       const key = toDateKey(d);
@@ -119,7 +122,7 @@ export default function PrayersScreen() {
               </div>
               <div className="bg-card rounded-2xl border border-border p-3 text-center">
                 <p className="text-[22px] font-bold text-foreground">{monthStats.pct}%</p>
-                <p className="text-[11px] text-muted-fg uppercase tracking-wide mt-0.5">This month</p>
+                <p className="text-[11px] text-muted-fg uppercase tracking-wide mt-0.5">Last 30 days</p>
               </div>
             </div>
 
@@ -193,22 +196,20 @@ export default function PrayersScreen() {
               </div>
               <div className="bg-card rounded-2xl border border-border p-4 text-center">
                 <p className="text-[28px] font-bold text-foreground">{monthStats.pct}%</p>
-                <p className="text-[12px] text-muted-fg uppercase tracking-wide">This month</p>
+                <p className="text-[12px] text-muted-fg uppercase tracking-wide">Last 30 days</p>
                 <p className="text-[11px] text-muted-fg mt-0.5">{monthStats.completed}/{monthStats.total} prayers</p>
               </div>
             </div>
 
             {/* Heatmap */}
             <div className="bg-card rounded-2xl border border-border p-4">
-              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-4">Last 4 Weeks</h3>
+              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-4">Past Month</h3>
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['S','M','T','W','T','F','S'].map((d, i) => (
                   <div key={i} className="text-center text-[10px] text-muted-fg font-medium">{d}</div>
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-1">
-                {/* Blank cells so the first day sits under its own weekday column */}
-                {Array.from({ length: heatmapDays[0].d.getDay() }, (_, i) => <div key={`pad-${i}`} />)}
                 {heatmapDays.map(({ key, d, rate }) => {
                   const isToday = todayK === key;
                   return (
@@ -227,6 +228,10 @@ export default function PrayersScreen() {
                     </button>
                   );
                 })}
+                {/* The rest of this week, still to come */}
+                {Array.from({ length: 6 - today.getDay() }, (_, i) => (
+                  <div key={`future-${i}`} className="aspect-square rounded-md border border-dashed border-border" />
+                ))}
               </div>
 
               {/* Color legend */}

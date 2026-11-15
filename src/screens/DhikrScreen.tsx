@@ -140,13 +140,13 @@ export default function DhikrScreen() {
                           {/* Header row */}
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-0.5">
-                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${allDone ? 'bg-primary' : 'bg-border'}`} />
-                                <p className={`text-[15px] font-semibold ${allDone ? 'text-muted-fg line-through' : 'text-foreground'}`}>
+                              <div className="flex items-baseline gap-2 mb-0.5">
+                                <div className={`w-2 h-2 rounded-full flex-shrink-0 self-center ${allDone ? 'bg-primary' : 'bg-border'}`} />
+                                <p className={`min-w-0 truncate text-[15px] font-semibold ${allDone ? 'text-muted-fg line-through' : 'text-foreground'}`}>
                                   {def.name}
                                 </p>
+                                <p className="font-arabic text-[16px] text-muted-fg ml-auto flex-shrink-0">{def.nameAr}</p>
                               </div>
-                              <p className="font-arabic text-[16px] text-muted-fg pl-4">{def.nameAr}</p>
                             </div>
                             <div className="text-right ml-2">
                               <p className={`text-[13px] font-semibold tabular-nums ${allDone ? 'text-primary' : 'text-muted-fg'}`}>
@@ -211,10 +211,12 @@ export default function DhikrScreen() {
                           )}
                         </span>
                         <div className="flex-1 min-w-0">
-                          <p className={`text-[15px] font-semibold ${done ? 'text-muted-fg line-through' : 'text-foreground'}`}>
-                            {def.name}
-                          </p>
-                          <p className="font-arabic text-[14px] text-muted-fg">{def.nameAr}</p>
+                          <div className="flex items-baseline justify-between gap-3">
+                            <p className={`min-w-0 truncate text-[15px] font-semibold ${done ? 'text-muted-fg line-through' : 'text-foreground'}`}>
+                              {def.name}
+                            </p>
+                            <p className="font-arabic text-[14px] text-muted-fg flex-shrink-0">{def.nameAr}</p>
+                          </div>
                           <p className="text-[12px] text-muted-fg mt-0.5">{def.description}</p>
                         </div>
                         {streak > 0 && (
@@ -256,9 +258,9 @@ export default function DhikrScreen() {
                   onClick={() => setReading(t.id)}
                   className="w-full flex items-center gap-3 px-4 py-3.5 transition active:bg-muted text-left"
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-semibold text-foreground">{t.title}</p>
-                    <p className="font-arabic text-[14px] text-muted-fg">{t.titleAr}</p>
+                  <div className="flex-1 min-w-0 flex items-baseline justify-between gap-3">
+                    <p className="min-w-0 truncate text-[15px] font-semibold text-foreground">{t.title}</p>
+                    <p className="font-arabic text-[14px] text-muted-fg flex-shrink-0">{t.titleAr}</p>
                   </div>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-muted-fg flex-shrink-0">
                     <path d="M9 18l6-6-6-6"/>
