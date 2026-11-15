@@ -138,22 +138,19 @@ export default function DhikrScreen() {
                         {idx > 0 && <div className="h-px bg-border mx-4" />}
                         <div className="px-4 py-3">
                           {/* Header row */}
-                          <div className="flex items-start justify-between mb-2">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-baseline gap-2 mb-0.5">
-                                <div className={`w-2 h-2 rounded-full flex-shrink-0 self-center ${allDone ? 'bg-primary' : 'bg-border'}`} />
-                                <p className={`min-w-0 truncate text-[15px] font-semibold ${allDone ? 'text-muted-fg line-through' : 'text-foreground'}`}>
-                                  {def.name}
-                                </p>
-                                <p className="font-arabic text-[16px] text-muted-fg ml-auto flex-shrink-0">{def.nameAr}</p>
-                              </div>
-                            </div>
-                            <div className="text-right ml-2">
-                              <p className={`text-[13px] font-semibold tabular-nums ${allDone ? 'text-primary' : 'text-muted-fg'}`}>
+                          {/* Name, Arabic name and count share one baseline; the read button is centred on it */}
+                          <div className="flex items-center gap-1 mb-2">
+                            <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 self-center ${allDone ? 'bg-primary' : 'bg-border'}`} />
+                              <p className={`min-w-0 truncate text-[15px] font-semibold ${allDone ? 'text-muted-fg line-through' : 'text-foreground'}`}>
+                                {def.name}
+                              </p>
+                              <p className="font-arabic text-[16px] text-muted-fg ml-auto flex-shrink-0">{def.nameAr}</p>
+                              <p className={`ml-1 flex-shrink-0 text-[13px] font-semibold tabular-nums ${allDone ? 'text-primary' : 'text-muted-fg'}`}>
                                 {subDone}/{def.subItems.length}
                               </p>
                               {streak > 0 && (
-                                <p className="text-[11px] text-accent font-medium inline-flex items-center gap-0.5">{streak}d <LuFlame /></p>
+                                <p className="flex-shrink-0 text-[11px] text-accent font-medium inline-flex items-center gap-0.5">{streak}d <LuFlame /></p>
                               )}
                             </div>
                             <ReadButton onClick={() => setReading(TEXT_FOR_DHIKR[def.id])} label={def.name} />

@@ -24,6 +24,9 @@ requestAnimationFrame(() => {
   if (!splash) return;
   setTimeout(() => {
     splash.classList.add('hide');
+    // Hand the status bar from the splash colour to the app's (see App.tsx)
+    const bg = document.documentElement.dataset.statusBar;
+    if (bg) document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', bg));
     splash.addEventListener('transitionend', () => splash.remove(), { once: true });
     setTimeout(() => splash.remove(), 1000);
   }, Math.max(0, SPLASH_MIN_MS - performance.now()));

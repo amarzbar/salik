@@ -60,6 +60,10 @@ export default function App() {
     const setDark = (dark: boolean) => {
       root.classList.toggle('dark', dark);
       const bg = (BG[palette] ?? BG.emerald)[dark ? 'dark' : 'light'];
+      // While the launch splash is up, the status bar keeps the splash colour
+      // (set in index.html); main.tsx applies this one when the splash goes.
+      root.dataset.statusBar = bg;
+      if (document.querySelector('#splash:not(.hide)')) return;
       document.querySelectorAll('meta[name="theme-color"]').forEach(m => m.setAttribute('content', bg));
     };
 
