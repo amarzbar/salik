@@ -1,5 +1,5 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
-import { useAppStore, DHIKR_DEFS, PRAYER_LABELS, todayKey, activeDate, type DhikrId } from '../store';
+import { useAppStore, DHIKR_DEFS, PRAYER_LABELS, todayKey, activeDate, canMarkDhikr, type DhikrId } from '../store';
 import { todayHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { DHIKR_TEXTS, TEXT_FOR_DHIKR, type DhikrTextId } from '../data/dhikrTexts';
 import ProgressRing from '../components/ProgressRing';
@@ -164,7 +164,8 @@ export default function DhikrScreen() {
                                 <button
                                   key={subIdx}
                                   onClick={() => toggleDhikrSub(todayK, def.id, subIdx, def.subItems!.length)}
-                                  className="w-full flex items-center gap-2.5 py-2 px-3 rounded-xl transition active:bg-muted text-left"
+                                  disabled={!done && !canMarkDhikr(todayK, def.id, subIdx)}
+                                  className="w-full flex items-center gap-2.5 py-2 px-3 rounded-xl transition active:bg-muted text-left disabled:opacity-50 disabled:active:bg-transparent"
                                 >
                                   <span className={[
                                     'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
@@ -195,7 +196,8 @@ export default function DhikrScreen() {
                       <div className="flex items-center pr-2">
                       <button
                         onClick={() => setDhikr(todayK, def.id, !done)}
-                        className="flex-1 min-w-0 flex items-center gap-3 px-4 py-4 transition active:bg-muted text-left"
+                        disabled={!done && !canMarkDhikr(todayK, def.id)}
+                        className="flex-1 min-w-0 flex items-center gap-3 px-4 py-4 transition active:bg-muted text-left disabled:opacity-50 disabled:active:bg-transparent"
                       >
                         <span className={[
                           'w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',

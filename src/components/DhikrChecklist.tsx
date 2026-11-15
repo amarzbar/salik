@@ -3,7 +3,7 @@
 // past days (used by the Calendar view when a previous day is selected).
 
 import { useMemo } from 'react';
-import { useAppStore, DHIKR_DEFS } from '../store';
+import { useAppStore, DHIKR_DEFS, canMarkDhikr } from '../store';
 
 interface Props {
   dateKey: string;
@@ -54,7 +54,8 @@ export default function DhikrChecklist({ dateKey }: Props) {
                       <button
                         key={subIdx}
                         onClick={() => toggleDhikrSub(dateKey, def.id, subIdx, def.subItems!.length)}
-                        className="w-full flex items-center gap-2.5 py-1.5 px-2 rounded-lg transition active:bg-muted text-left"
+                        disabled={!done && !canMarkDhikr(dateKey, def.id, subIdx)}
+                        className="w-full flex items-center gap-2.5 py-1.5 px-2 rounded-lg transition active:bg-muted text-left disabled:opacity-50 disabled:active:bg-transparent"
                       >
                         <span className={[
                           'w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
@@ -80,7 +81,8 @@ export default function DhikrChecklist({ dateKey }: Props) {
             <button
               key={def.id}
               onClick={() => setDhikr(dateKey, def.id, !done)}
-              className="w-full flex items-center gap-3 px-4 py-3 transition active:bg-muted text-left"
+              disabled={!done && !canMarkDhikr(dateKey, def.id)}
+              className="w-full flex items-center gap-3 px-4 py-3 transition active:bg-muted text-left disabled:opacity-50 disabled:active:bg-transparent"
             >
               <span className={[
                 'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',

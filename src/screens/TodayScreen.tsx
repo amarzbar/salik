@@ -4,7 +4,7 @@ import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { eventsForDay } from '../data/islamicEvents';
 import { reminderForDay } from '../data/reminders';
 import { computeBadges, longestRun } from '../data/badges';
-import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, hasPrayerStarted, canMarkDhikr, type PrayerStatus } from '../store';
 import ProgressRing from '../components/ProgressRing';
 import { LuFlame, LuSprout, LuPenLine } from 'react-icons/lu';
 import { observanceIcon } from '../components/categoryIcons';
@@ -174,11 +174,13 @@ export default function TodayScreen({ onNavigate }: Props) {
           {PRAYERS.map(prayer => {
             const status = state.prayers[todayK]?.[prayer] ?? 'pending';
             const cfg = STATUS_CONFIG[status];
+            const notYet = status === 'pending' && !hasPrayerStarted(todayK, prayer);
             return (
               <button
                 key={prayer}
                 onClick={() => prayerTap.onTap(todayK, prayer)}
-                className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted"
+                disabled={notYet}
+                className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
               >
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${status === 'pending' ? 'bg-border' : cfg.bg}`} />
@@ -187,7 +189,7 @@ export default function TodayScreen({ onNavigate }: Props) {
                 <div className="flex items-center gap-2.5">
                   <span className="text-[13px] text-muted-fg">{prayerTimeMap[prayer]}</span>
                   <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-                    {cfg.label}
+                    {notYet ? 'Not yet' : cfg.label}
                   </span>
                 </div>
               </button>
@@ -211,6 +213,7 @@ export default function TodayScreen({ onNavigate }: Props) {
           {DHIKR_DEFS.slice(0, 4).map(def => {
             const val = state.dhikr[todayK]?.[def.id];
             const done = def.subItems && Array.isArray(val) ? (val as boolean[]).every(Boolean) : val === true;
+            const notYet = !def.subItems && !done && !canMarkDhikr(todayK, def.id);
             return (
               <button
                 key={def.id}
@@ -218,7 +221,8 @@ export default function TodayScreen({ onNavigate }: Props) {
                   if (def.subItems) { onNavigate('dhikr'); return; }
                   setDhikr(todayK, def.id, !done);
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 transition active:bg-muted"
+                disabled={notYet}
+                className="w-full flex items-center gap-3 px-4 py-3 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
               >
                 <span className={[
                   'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',

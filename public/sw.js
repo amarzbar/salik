@@ -1,4 +1,4 @@
-const CACHE = 'murid-v16'; // bumped: light-mode splash
+const CACHE = 'murid-v17'; // bumped: lock prayers/dhikr until their time
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {

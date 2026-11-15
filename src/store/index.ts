@@ -236,6 +236,36 @@ function computeAutoStatus(settings: AppState['settings'], dateKey: string, pray
   return nowH < windowEnd[prayer] ? 'ontime' : 'late';
 }
 
+// ─── What can be marked yet ────────────────────────────────────────────────
+// On the current day a prayer, and any dhikr said after it, can only be
+// marked once that prayer's time has come in. Earlier days can be filled in
+// at any time; later days not at all. Clearing a mark is always allowed.
+
+export function hasPrayerStarted(dateKey: string, prayer: PrayerName): boolean {
+  const today = todayKey();
+  if (dateKey !== today) return dateKey < today;
+  const settings = getState().settings;
+  const loc = resolveLocation(settings, dateFromKey(dateKey));
+  const times = calcPrayerTimes(dateFromKey(dateKey), loc.lat, loc.lng, loc.tz, {
+    asrMethod: settings.asrMethod,
+    angleMethod: settings.angleMethod,
+  });
+  const start: Record<PrayerName, number> = {
+    fajr: times.fajrH, dhuhr: times.dhuhrH, asr: times.asrH, maghrib: times.maghribH, isha: times.ishaH,
+  };
+  // Same clock as computeAutoStatus: hours since dateKey's midnight
+  const nowH = (Date.now() - dateFromKey(dateKey).getTime()) / 3_600_000;
+  return nowH >= start[prayer];
+}
+
+// A dhikr follows its prayer; Salatut Ta'ziyah's sub-items follow each of the
+// five prayers in turn.
+export function canMarkDhikr(dateKey: string, id: DhikrId, subIdx = 0): boolean {
+  const def = DHIKR_DEFS.find(d => d.id === id);
+  if (!def) return true;
+  return hasPrayerStarted(dateKey, def.prayerTime === 'all' ? PRAYERS[subIdx] : def.prayerTime);
+}
+
 // ─── Global singleton store ───────────────────────────────────────────────────
 
 function load(): AppState {
@@ -358,12 +388,16 @@ export function useAppStore() {
   useEffect(() => {
     const cb = () => tick(n => n + 1);
     _listeners.add(cb);
-    return () => { _listeners.delete(cb); };
+    // Also re-render each minute, so prayers and dhikr unlock (see
+    // hasPrayerStarted) when their time comes in without a reload.
+    const minute = setInterval(cb, 60_000);
+    return () => { _listeners.delete(cb); clearInterval(minute); };
   }, []);
 
   const state = getState();
 
   const setPrayerStatus = useCallback((dateKey: string, prayer: PrayerName, status: PrayerStatus) => {
+    if (status !== 'pending' && !hasPrayerStarted(dateKey, prayer)) return;
     setState(s => ({
       ...s,
       prayers: { ...s.prayers, [dateKey]: { ...s.prayers[dateKey], [prayer]: status } },
@@ -374,6 +408,7 @@ export function useAppStore() {
   // each tap from the clock) -> missed (explicit) -> back to pending.
   const cyclePrayerStatus = useCallback((dateKey: string, prayer: PrayerName) => {
     const cur = getState().prayers[dateKey]?.[prayer] ?? 'pending';
+    if (cur === 'pending' && !hasPrayerStarted(dateKey, prayer)) return;
     const next: PrayerStatus =
       cur === 'pending' ? computeAutoStatus(getState().settings, dateKey, prayer)
       : cur === 'missed' ? 'pending'
@@ -385,6 +420,7 @@ export function useAppStore() {
   }, []);
 
   const setDhikr = useCallback((dateKey: string, id: DhikrId, value: boolean | boolean[]) => {
+    if (value === true && !canMarkDhikr(dateKey, id)) return;
     setState(s => ({
       ...s,
       dhikr: { ...s.dhikr, [dateKey]: { ...s.dhikr[dateKey], [id]: value } },
@@ -392,6 +428,8 @@ export function useAppStore() {
   }, []);
 
   const toggleDhikrSub = useCallback((dateKey: string, id: DhikrId, idx: number, total: number) => {
+    const on = (getState().dhikr[dateKey]?.[id] as boolean[] | undefined)?.[idx] ?? false;
+    if (!on && !canMarkDhikr(dateKey, id, idx)) return;
     setState(s => {
       const cur = (s.dhikr[dateKey]?.[id] as boolean[] | undefined) ?? Array(total).fill(false);
       const next = [...cur];

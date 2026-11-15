@@ -4,7 +4,7 @@
 
 import { useMemo } from 'react';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
-import { useAppStore, PRAYERS, PRAYER_LABELS, dateFromKey, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, PRAYER_LABELS, dateFromKey, hasPrayerStarted, type PrayerStatus } from '../store';
 import { usePrayerTap } from './PrayerStatusSheet';
 
 const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: string }> = {
@@ -51,11 +51,13 @@ export default function PrayerChecklist({ dateKey }: Props) {
         {PRAYERS.map(prayer => {
           const status = state.prayers[dateKey]?.[prayer] ?? 'pending';
           const cfg = STATUS_CONFIG[status];
+          const notYet = status === 'pending' && !hasPrayerStarted(dateKey, prayer);
           return (
             <button
               key={prayer}
               onClick={() => prayerTap.onTap(dateKey, prayer)}
-              className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted"
+              disabled={notYet}
+              className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
             >
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${status === 'pending' ? 'bg-border' : cfg.bg}`} />
@@ -64,7 +66,7 @@ export default function PrayerChecklist({ dateKey }: Props) {
               <div className="flex items-center gap-2.5">
                 <span className="text-[13px] text-muted-fg">{prayerTimeMap[prayer]}</span>
                 <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-                  {cfg.label}
+                  {notYet ? 'Not yet' : cfg.label}
                 </span>
               </div>
             </button>

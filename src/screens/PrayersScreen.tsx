@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
-import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, hasPrayerStarted, type PrayerStatus } from '../store';
 import { usePrayerTap } from '../components/PrayerStatusSheet';
 import { todayHijri, gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import DayPrayerModal from '../components/DayPrayerModal';
@@ -139,12 +139,14 @@ export default function PrayersScreen() {
               {PRAYERS.map((prayer, idx) => {
                 const status = state.prayers[todayK]?.[prayer] ?? 'pending';
                 const cfg = STATUS_CONFIG[status];
+                const notYet = status === 'pending' && !hasPrayerStarted(todayK, prayer);
                 return (
                   <div key={prayer}>
                     {idx > 0 && <div className="h-px bg-border mx-4" />}
                     <button
                       onClick={() => prayerTap.onTap(todayK, prayer)}
-                      className="w-full flex items-center gap-4 px-4 py-4 transition active:bg-muted"
+                      disabled={notYet}
+                      className="w-full flex items-center gap-4 px-4 py-4 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
                     >
                       {/* Status indicator */}
                       <div className={`w-3 h-3 rounded-full flex-shrink-0 ${cfg.dot}`} />
@@ -157,7 +159,7 @@ export default function PrayersScreen() {
 
                       {/* Status badge */}
                       <span className={`text-[12px] font-semibold px-3 py-1.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-                        {cfg.label}
+                        {notYet ? 'Not yet' : cfg.label}
                       </span>
                     </button>
                   </div>
