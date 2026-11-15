@@ -1,4 +1,4 @@
-const CACHE = 'murid-v15'; // bumped: du'a after dhikr text
+const CACHE = 'murid-v16'; // bumped: light-mode splash
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
 self.addEventListener('install', e => {
