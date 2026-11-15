@@ -207,6 +207,8 @@ export default function PrayersScreen() {
                 ))}
               </div>
               <div className="grid grid-cols-7 gap-1">
+                {/* Blank cells so the first day sits under its own weekday column */}
+                {Array.from({ length: heatmapDays[0].d.getDay() }, (_, i) => <div key={`pad-${i}`} />)}
                 {heatmapDays.map(({ key, d, rate }) => {
                   const isToday = todayK === key;
                   return (
