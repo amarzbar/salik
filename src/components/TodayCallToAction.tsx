@@ -6,23 +6,25 @@
 import { useState } from 'react';
 import { LuBellRing, LuCircleCheck, LuHourglass, LuSparkles } from 'react-icons/lu';
 import {
-  useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, hasPrayerStarted, canMarkDhikr,
+  useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, hasPrayerStarted, canMarkDhikr, dateFromKey, toDateKey,
   type DhikrId, type PrayerStatus,
 } from '../store';
 import type { PrayerName } from '../store';
 import DayPrayerModal from './DayPrayerModal';
 import DhikrChecklist from './DhikrChecklist';
 import BottomSheet from './BottomSheet';
+import { heatSchemeOf, statusBg, statusText, type StatusKey } from '../utils/dayScore';
 
 const KEPT: PrayerStatus[] = ['ontime', 'late', 'qada'];
+const STATUS_LABEL: Record<StatusKey, string> = { pending: 'Not marked', ontime: 'On time', late: 'Late', qada: "Qada'", missed: 'Missed' };
 const isKept = (s: PrayerStatus | undefined) => !!s && KEPT.includes(s);
 const list = (names: string[]) => names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 
 type Tone = 'call' | 'waiting' | 'clear' | 'done';
 
-function Card({ tone, eyebrow, title, body, action, onAction, footer }: {
+function Card({ tone, eyebrow, title, body, action, onAction, footer, children }: {
   tone: Tone; eyebrow: string; title: string; body: string;
-  action?: string; onAction?: () => void; footer: React.ReactNode;
+  action?: string; onAction?: () => void; footer: React.ReactNode; children?: React.ReactNode;
 }) {
   const Icon = tone === 'call' ? LuBellRing : tone === 'waiting' ? LuHourglass : tone === 'done' ? LuSparkles : LuCircleCheck;
   return (
@@ -40,6 +42,7 @@ function Card({ tone, eyebrow, title, body, action, onAction, footer }: {
           <p className="text-[13px] text-muted-fg mt-1 leading-relaxed">{body}</p>
         </div>
       </div>
+      {children}
       {action && onAction && (
         <button
           onClick={onAction}
@@ -49,6 +52,38 @@ function Card({ tone, eyebrow, title, body, action, onAction, footer }: {
         </button>
       )}
       <div className="mt-3 flex justify-center">{footer}</div>
+    </div>
+  );
+}
+
+const LOOKBACK_DAYS = 30;
+function earlierDays(firstLogged: string | undefined): string[] {
+  const out: string[] = [];
+  if (!firstLogged) return out;
+  const d = dateFromKey(todayKey());
+  for (let i = 1; i <= LOOKBACK_DAYS; i++) {
+    d.setDate(d.getDate() - 1);
+    const k = toDateKey(d);
+    if (k < firstLogged) break;
+    out.push(k); // most recent first
+  }
+  return out;
+}
+
+// "Look back" call to action under a completed day: opens the most recent earlier day that
+// still has something to make up; the count falls as days are filled in.
+function LookBack({ count, unit, onOpen }: { count: number; unit: string; onOpen: () => void }) {
+  if (count === 0) {
+    return <p className="mt-4 text-center text-[12px] text-muted-fg">Nothing left to make up in the last {LOOKBACK_DAYS} days. Alhamdulillah.</p>;
+  }
+  return (
+    <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
+      <p className="text-[13px] text-foreground">
+        <span className="font-semibold">{count} earlier {count === 1 ? 'day has' : 'days have'}</span> room for more {unit}.
+      </p>
+      <button onClick={onOpen} className="w-full mt-2.5 py-2.5 rounded-lg bg-primary text-primary-fg font-semibold text-[14px] transition active:scale-[0.99]">
+        Review earlier days
+      </button>
     </div>
   );
 }
@@ -77,6 +112,11 @@ export function PrayerCallCard({ times, streak, onTap }: {
   const keptCount = PRAYERS.filter(p => isKept(day[p])).length;
   const footer = <SeeAll label="See all prayers" onClick={() => setShowAll(true)} />;
   const L = (p: PrayerName) => PRAYER_LABELS[p];
+  const scheme = heatSchemeOf(state.settings);
+  const [lookBackDay, setLookBackDay] = useState<string | null>(null);
+  // Earlier days with a prayer not yet kept (unmarked or marked missed), most recent first.
+  const firstLogged = Object.keys(state.prayers).filter(k => Object.keys(state.prayers[k] ?? {}).length).sort()[0];
+  const prayerGaps = earlierDays(firstLogged).filter(k => PRAYERS.some(p => !isKept(state.prayers[k]?.[p])));
 
   let card: React.ReactNode;
   if (current && !isKept(day[current])) {
@@ -99,7 +139,24 @@ export function PrayerCallCard({ times, streak, onTap }: {
       <Card tone="done" eyebrow="Prayers"
         title="All five kept today"
         body={`Alhamdulillah. May Allah accept them from you.${streak > 1 ? ` That's ${streak} days in a row.` : ''}`}
-        footer={footer} />
+        footer={footer}>
+        {/* The completed set: tap one to change its status */}
+        <div className="mt-3 divide-y divide-border rounded-xl border border-border overflow-hidden">
+          {PRAYERS.map(p => {
+            const s = (day[p] ?? 'pending') as StatusKey;
+            return (
+              <button key={p} onClick={() => onTap(todayK, p)} className="w-full flex items-center justify-between px-3 py-2 text-left transition active:bg-muted">
+                <span className="text-[14px] font-medium text-foreground">{L(p)}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-[12px] text-muted-fg">{times[p]}</span>
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusBg(s, scheme)} ${statusText(s, scheme)}`}>{STATUS_LABEL[s]}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <LookBack count={prayerGaps.length} unit="prayer" onOpen={() => setLookBackDay(prayerGaps[0])} />
+      </Card>
     );
   } else {
     card = (
@@ -116,6 +173,7 @@ export function PrayerCallCard({ times, streak, onTap }: {
     <>
       {card}
       {showAll && <DayPrayerModal dateKey={todayK} onClose={() => setShowAll(false)} />}
+      {lookBackDay && <DayPrayerModal dateKey={lookBackDay} onClose={() => setLookBackDay(null)} />}
     </>
   );
 }
@@ -155,8 +213,12 @@ function dhikrTasks(dhikr: Partial<Record<DhikrId, boolean | boolean[]>>, dateKe
 export function DhikrCallCard() {
   const { state, setDhikr, toggleDhikrSub } = useAppStore();
   const todayK = todayKey();
-  const [showAll, setShowAll] = useState(false);
+  const [dhikrDay, setDhikrDay] = useState<string | null>(null); // the day shown in the dhikr sheet
+  const setShowAll = (on: boolean) => setDhikrDay(on ? todayK : null);
   const tasks = dhikrTasks(state.dhikr[todayK] ?? {}, todayK);
+  // Earlier days whose dhikr isn't complete, most recent first.
+  const firstDhikr = Object.keys(state.dhikr).filter(k => Object.keys(state.dhikr[k] ?? {}).length).sort()[0];
+  const dhikrGaps = earlierDays(firstDhikr).filter(k => dhikrTasks(state.dhikr[k] ?? {}, k).some(x => !x.done));
   const open = tasks.filter(t => t.available && !t.done);
   const latestAfter = [...tasks].reverse().find(t => t.available)?.after;
   const nextLater = tasks.find(t => !t.available && !t.done);
@@ -182,7 +244,26 @@ export function DhikrCallCard() {
         action="I've recited it" onAction={() => mark(t)} footer={footer} />
     );
   } else if (!nextLater) {
-    card = <Card tone="done" eyebrow="Dhikr" title="Every dhikr complete today" body={`May Allah accept your remembrance. ${virtueOfTheDay(todayK)}`} footer={footer} />;
+    card = (
+      <Card tone="done" eyebrow="Dhikr" title="Every dhikr complete today" body={`May Allah accept your remembrance. ${virtueOfTheDay(todayK)}`} footer={footer}>
+        {/* The completed set */}
+        <div className="mt-3 divide-y divide-border rounded-xl border border-border overflow-hidden">
+          {DHIKR_DEFS.map(def => {
+            const v = (state.dhikr[todayK] ?? {})[def.id];
+            const n = def.subItems?.length;
+            return (
+              <div key={def.id} className="flex items-center justify-between px-3 py-2">
+                <span className="text-[14px] font-medium text-foreground">{def.name}<span className="text-[12px] text-muted-fg font-normal"> · {def.prayerTime === 'all' ? 'after each prayer' : `after ${PRAYER_LABELS[def.prayerTime]}`}</span></span>
+                <span className="flex items-center gap-1 text-[12px] font-semibold text-primary">
+                  {n ? `${Array.isArray(v) ? v.filter(Boolean).length : v === true ? n : 0}/${n}` : ''}<LuCircleCheck className="text-[16px]" />
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <LookBack count={dhikrGaps.length} unit="dhikr" onOpen={() => setDhikrDay(dhikrGaps[0])} />
+      </Card>
+    );
   } else {
     card = (
       <Card tone="clear" eyebrow="Dhikr"
@@ -195,12 +276,15 @@ export function DhikrCallCard() {
   return (
     <>
       {card}
-      {showAll && (
-        <BottomSheet onClose={() => setShowAll(false)}>
+      {dhikrDay && (
+        <BottomSheet onClose={() => setDhikrDay(null)}>
           <div className="px-5 pb-5">
-            <h2 className="text-xl font-bold text-foreground mb-4">Today's dhikr</h2>
-            <DhikrChecklist dateKey={todayK} />
-            <button onClick={() => setShowAll(false)} className="w-full mt-4 py-3 rounded-xl bg-secondary text-primary font-semibold text-[14px]">Done</button>
+            <h2 className="text-xl font-bold text-foreground mb-0.5">
+              {dhikrDay === todayK ? "Today's dhikr" : dateFromKey(dhikrDay).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+            </h2>
+            <p className="text-[13px] text-muted-fg mb-4">{dhikrDay === todayK ? 'Tick off what you have recited.' : 'Fill in what you recited that day.'}</p>
+            <DhikrChecklist dateKey={dhikrDay} />
+            <button onClick={() => setDhikrDay(null)} className="w-full mt-4 py-3 rounded-xl bg-secondary text-primary font-semibold text-[14px]">Done</button>
           </div>
         </BottomSheet>
       )}
