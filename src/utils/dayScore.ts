@@ -60,11 +60,32 @@ export function dayScore(
   return dayPoints(prayers, dhikr) / MAX_DAY_POINTS;
 }
 
-/** Heatmap fill for a prayer rate (same scale as the Prayer History grid). */
-export function heatColor(rate: number): string {
-  if (rate === 0) return 'bg-muted';
-  if (rate < 0.4) return 'bg-red-300 dark:bg-red-800';
-  if (rate < 0.8) return 'bg-amber-300 dark:bg-amber-700';
-  if (rate < 1) return 'bg-primary/50';
-  return 'bg-primary';
+// Five levels shared by every heatmap: none / low / medium / high / complete.
+function level(rate: number): 0 | 1 | 2 | 3 | 4 {
+  if (rate === 0) return 0;
+  if (rate < 0.4) return 1;
+  if (rate < 0.8) return 2;
+  if (rate < 1) return 3;
+  return 4;
+}
+
+// Standard scale: red → amber → green.
+const STANDARD_BG = ['bg-muted', 'bg-red-300 dark:bg-red-800', 'bg-amber-300 dark:bg-amber-700', 'bg-primary/50', 'bg-primary'];
+const STANDARD_FG = ['text-foreground', 'text-red-950 dark:text-white', 'text-amber-950 dark:text-white', 'text-foreground', 'text-primary-fg'];
+
+// Colorblind-friendly scale (Settings → Appearance): Okabe–Ito colors running orange → blue,
+// which stay distinct for red-green (deutan/protan) and blue-yellow (tritan) color blindness,
+// and step in brightness too, so the levels separate even in grayscale.
+//   low = vermillion, medium = gold, high = sky blue, complete = deep blue
+const CB_BG = ['bg-muted', 'bg-[#D55E00]', 'bg-[#E69F00]', 'bg-[#56B4E9]', 'bg-[#0072B2]'];
+const CB_FG = ['text-foreground', 'text-white', 'text-[#1A1A1A]', 'text-[#1A1A1A]', 'text-white'];
+
+/** Heatmap fill for a 0–1 rate (same scale on Prayer History and the Calendar). */
+export function heatColor(rate: number, colorblind = false): string {
+  return (colorblind ? CB_BG : STANDARD_BG)[level(rate)];
+}
+
+/** Readable text color to put on top of heatColor(rate). */
+export function heatText(rate: number, colorblind = false): string {
+  return (colorblind ? CB_FG : STANDARD_FG)[level(rate)];
 }

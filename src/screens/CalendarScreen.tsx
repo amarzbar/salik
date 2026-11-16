@@ -5,7 +5,7 @@ import EventDetailModal from '../components/EventDetailModal';
 import DhikrChecklist from '../components/DhikrChecklist';
 import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent } from '../store';
 import { observanceIcon, CAL_CATEGORY_ICON } from '../components/categoryIcons';
-import { prayerRate, dhikrRate, dayScore, heatColor } from '../utils/dayScore';
+import { prayerRate, dhikrRate, dayScore, heatColor, heatText } from '../utils/dayScore';
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -119,8 +119,8 @@ export default function CalendarScreen() {
             const pRate = tracked ? prayerRate(state.prayers[dKey]) : 0;
             const dRate = tracked ? dhikrRate(state.dhikr[dKey]) : 0;
             const score = tracked ? dayScore(state.prayers[dKey], state.dhikr[dKey]) : 0;
-            const filled = score > 0.5; // dark enough fill that text switches to white
             const complete = pRate === 1 && dRate === 1;
+            const cb = !!state.settings.colorblind;
 
             return (
               <button
@@ -128,31 +128,25 @@ export default function CalendarScreen() {
                 onClick={() => setSelectedDay(hDay === selectedDay ? null : hDay)}
                 aria-label={`${hDay} ${HIJRI_MONTHS[viewMonth - 1]}${tracked ? `, ${Math.round(pRate * 5)} of 5 prayers, ${Math.round(dRate * 100)}% dhikr${complete ? ', complete day' : ''}` : ''}`}
                 className={[
-                  'relative flex flex-col items-center justify-center rounded-xl transition-all py-1.5 min-h-[52px] overflow-hidden',
-                  tracked ? heatColor(score) : 'hover:bg-muted',
-                  isSelected ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background z-10' : isTod ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : '',
+                  'relative flex flex-col items-center justify-center gap-1 rounded-xl transition-colors py-1.5 min-h-[58px]',
+                  isSelected ? 'bg-secondary' : 'hover:bg-muted',
                 ].join(' ')}
               >
-                {/* Hijri day */}
+                {/* Hijri day, centred in a circle whose color is the day's status */}
                 <span className={[
-                  'text-[16px] font-semibold leading-none mb-0.5',
-                  filled ? 'text-white' : isTod || isFriday ? 'text-primary' : 'text-foreground',
+                  'w-9 h-9 rounded-full flex items-center justify-center text-[15px] font-semibold leading-none',
+                  tracked ? `${heatColor(score, cb)} ${heatText(score, cb)}` : isFriday ? 'text-primary' : 'text-foreground',
+                  isTod ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background' : '',
                 ].join(' ')}>
                   {hDay}
                 </span>
                 {/* Gregorian day */}
-                <span className={[
-                  'text-[10px] leading-none',
-                  filled ? 'text-white/75' : 'text-muted-fg',
-                ].join(' ')}>
+                <span className="text-[10px] leading-none text-muted-fg">
                   {greg.day}
                 </span>
                 {/* Event dot */}
                 {hasEvent && (
-                  <span className={[
-                    'absolute bottom-1 w-1 h-1 rounded-full',
-                    filled ? 'bg-white/80' : 'bg-accent',
-                  ].join(' ')} />
+                  <span className="absolute top-1 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
                 )}
               </button>
             );
@@ -164,7 +158,7 @@ export default function CalendarScreen() {
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-muted-fg">Less</span>
             {[0, 0.2, 0.6, 0.9, 1].map(r => (
-              <span key={r} className={`w-3.5 h-3.5 rounded-sm ${heatColor(r)}`} />
+              <span key={r} className={`w-3.5 h-3.5 rounded-full ${heatColor(r, !!state.settings.colorblind)}`} />
             ))}
             <span className="text-[11px] text-muted-fg">More</span>
           </div>

@@ -4,7 +4,7 @@ import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, h
 import { usePrayerTap } from '../components/PrayerStatusSheet';
 import { todayHijri, gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import DayPrayerModal from '../components/DayPrayerModal';
-import { heatColor } from '../utils/dayScore';
+import { heatColor, heatText } from '../utils/dayScore';
 
 type View = 'today' | 'history';
 
@@ -19,7 +19,6 @@ const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: str
 const CYCLE_ORDER: PrayerStatus[] = ['pending', 'ontime', 'late', 'qada', 'missed'];
 
 // Heatmap colors live in utils/dayScore so the Calendar shades days identically.
-const statusColor = heatColor;
 
 export default function PrayersScreen() {
   const { state, prayerStreak } = useAppStore();
@@ -217,9 +216,9 @@ export default function PrayersScreen() {
                       title={`${d.toLocaleDateString()} — ${Math.round(rate * 5)}/5 prayers — tap to edit`}
                       className={[
                         'aspect-square rounded-md flex items-center justify-center text-[9px] font-medium transition-colors active:scale-90',
-                        statusColor(rate),
-                        isToday ? 'ring-2 ring-primary ring-offset-1' : '',
-                        rate > 0.5 ? 'text-white' : 'text-muted-fg',
+                        heatColor(rate, !!state.settings.colorblind),
+                        isToday ? 'ring-2 ring-foreground ring-offset-1 ring-offset-background' : '',
+                        rate === 0 ? 'text-muted-fg' : heatText(rate, !!state.settings.colorblind),
                       ].join(' ')}
                     >
                       {d.getDate()}
@@ -236,7 +235,7 @@ export default function PrayersScreen() {
               <div className="flex items-center gap-3 mt-4 flex-wrap">
                 <span className="text-[11px] text-muted-fg">Less</span>
                 {[0, 0.2, 0.6, 0.9, 1].map(r => (
-                  <div key={r} className={`w-4 h-4 rounded-sm ${statusColor(r)}`} />
+                  <div key={r} className={`w-4 h-4 rounded-sm ${heatColor(r, !!state.settings.colorblind)}`} />
                 ))}
                 <span className="text-[11px] text-muted-fg">More</span>
               </div>

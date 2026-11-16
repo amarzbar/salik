@@ -271,6 +271,25 @@ export default function SettingsScreen({ onBack }: Props) {
                       <span className={['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', s.oled ? 'left-[18px]' : 'left-0.5'].join(' ')} />
                     </span>
                   </button>
+                  <button
+                    role="switch"
+                    aria-checked={!!s.colorblind}
+                    onClick={() => updateSettings({ colorblind: !s.colorblind })}
+                    className={['mt-2 w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors', s.colorblind ? 'bg-secondary border-primary' : 'bg-card border-border'].join(' ')}
+                  >
+                    <span className="flex shrink-0 -space-x-1.5">
+                      {['#D55E00', '#E69F00', '#56B4E9', '#0072B2'].map(c => (
+                        <span key={c} className="w-4 h-4 rounded-full border border-background" style={{ backgroundColor: c }} />
+                      ))}
+                    </span>
+                    <span className="flex-1 min-w-0">
+                      <span className={['block text-[13px] font-medium', s.colorblind ? 'text-primary' : 'text-foreground'].join(' ')}>Colorblind-friendly colors</span>
+                      <span className="block text-[12px] text-muted-fg">Calendar and prayer history use orange to blue instead of red to green, easier to tell apart.</span>
+                    </span>
+                    <span className={['relative w-10 h-6 rounded-full shrink-0 transition-colors', s.colorblind ? 'bg-primary' : 'bg-muted border border-border'].join(' ')}>
+                      <span className={['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', s.colorblind ? 'left-[18px]' : 'left-0.5'].join(' ')} />
+                    </span>
+                  </button>
                   <p className="text-[13px] text-muted-fg mt-5 mb-3">Color theme.</p>
                   <div className="grid grid-cols-5 gap-2">
                     {THEMES.map(t => {
