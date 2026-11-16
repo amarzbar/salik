@@ -5,6 +5,7 @@ import EventDetailModal from '../components/EventDetailModal';
 import DhikrChecklist from '../components/DhikrChecklist';
 import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent } from '../store';
 import { observanceIcon, CAL_CATEGORY_ICON } from '../components/categoryIcons';
+import { prayerRate, dhikrRate, heatColor } from '../utils/dayScore';
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -22,6 +23,7 @@ export default function CalendarScreen() {
 
   const today = activeDate();
   const todayGreg = { y: today.getFullYear(), m: today.getMonth() + 1, d: today.getDate() };
+  const todayK = todayKey();
 
   function prevMonth() {
     if (viewMonth === 1) { setViewYear(y => y - 1); setViewMonth(12); }
@@ -107,28 +109,43 @@ export default function CalendarScreen() {
             const hasEvent = hasEventOnDay(viewMonth, hDay);
             const isSelected = selectedDay === hDay;
             const isTod = isToday(hDay);
-            const isFriday = new Date(greg.year, greg.month - 1, greg.day).getDay() === 5;
+            const gDate = new Date(greg.year, greg.month - 1, greg.day);
+            const isFriday = gDate.getDay() === 5;
+            // Past days and today are shaded like the Prayer History heatmap (fill = prayers kept),
+            // with a gold bar along the top whose width is the share of the day's dhikr completed.
+            const dKey = toDateKey(gDate);
+            const tracked = dKey <= todayK;
+            const pRate = tracked ? prayerRate(state.prayers[dKey]) : 0;
+            const dRate = tracked ? dhikrRate(state.dhikr[dKey]) : 0;
+            const filled = pRate > 0.5; // dark enough fill that text switches to white
+            const complete = pRate === 1 && dRate === 1;
 
             return (
               <button
                 key={hDay}
                 onClick={() => setSelectedDay(hDay === selectedDay ? null : hDay)}
+                aria-label={`${hDay} ${HIJRI_MONTHS[viewMonth - 1]}${tracked ? `, ${Math.round(pRate * 5)} of 5 prayers, ${Math.round(dRate * 100)}% dhikr${complete ? ', complete day' : ''}` : ''}`}
                 className={[
-                  'relative flex flex-col items-center justify-center rounded-xl transition-all py-1.5 min-h-[52px]',
-                  isSelected ? 'bg-primary' : isTod ? 'bg-secondary' : 'hover:bg-muted',
+                  'relative flex flex-col items-center justify-center rounded-xl transition-all py-1.5 min-h-[52px] overflow-hidden',
+                  tracked ? heatColor(pRate) : 'hover:bg-muted',
+                  isSelected ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background z-10' : isTod ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : '',
                 ].join(' ')}
               >
+                {/* Dhikr bar */}
+                {tracked && dRate > 0 && (
+                  <span className="absolute top-0 left-0 h-[4px] bg-accent rounded-r-full" style={{ width: `${Math.round(dRate * 100)}%` }} />
+                )}
                 {/* Hijri day */}
                 <span className={[
                   'text-[16px] font-semibold leading-none mb-0.5',
-                  isSelected ? 'text-primary-fg' : isTod ? 'text-primary' : isFriday ? 'text-primary' : 'text-foreground',
+                  filled ? 'text-white' : isTod || isFriday ? 'text-primary' : 'text-foreground',
                 ].join(' ')}>
                   {hDay}
                 </span>
                 {/* Gregorian day */}
                 <span className={[
                   'text-[10px] leading-none',
-                  isSelected ? 'text-primary-fg/70' : 'text-muted-fg',
+                  filled ? 'text-white/75' : 'text-muted-fg',
                 ].join(' ')}>
                   {greg.day}
                 </span>
@@ -136,12 +153,28 @@ export default function CalendarScreen() {
                 {hasEvent && (
                   <span className={[
                     'absolute bottom-1 w-1 h-1 rounded-full',
-                    isSelected ? 'bg-primary-fg/60' : 'bg-accent',
+                    filled ? 'bg-white/80' : 'bg-accent',
                   ].join(' ')} />
                 )}
               </button>
             );
           })}
+        </div>
+
+        {/* Legend: fill = prayers, gold bar = dhikr */}
+        <div className="flex items-center justify-center gap-4 px-4 mt-3 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-fg">Prayers</span>
+            {[0, 0.2, 0.6, 0.9, 1].map(r => (
+              <span key={r} className={`w-3.5 h-3.5 rounded-sm ${heatColor(r)}`} />
+            ))}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-fg">Dhikr</span>
+            <span className="relative w-7 h-3.5 rounded-sm bg-muted overflow-hidden">
+              <span className="absolute top-0 left-0 h-[4px] w-full bg-accent" />
+            </span>
+          </div>
         </div>
 
         {/* Selected day detail */}

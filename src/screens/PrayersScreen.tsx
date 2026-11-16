@@ -4,6 +4,7 @@ import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, h
 import { usePrayerTap } from '../components/PrayerStatusSheet';
 import { todayHijri, gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import DayPrayerModal from '../components/DayPrayerModal';
+import { heatColor } from '../utils/dayScore';
 
 type View = 'today' | 'history';
 
@@ -17,13 +18,8 @@ const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: str
 
 const CYCLE_ORDER: PrayerStatus[] = ['pending', 'ontime', 'late', 'qada', 'missed'];
 
-function statusColor(rate: number): string {
-  if (rate === 0) return 'bg-muted';
-  if (rate < 0.4) return 'bg-red-300 dark:bg-red-800';
-  if (rate < 0.8) return 'bg-amber-300 dark:bg-amber-700';
-  if (rate < 1) return 'bg-primary/50';
-  return 'bg-primary';
-}
+// Heatmap colors live in utils/dayScore so the Calendar shades days identically.
+const statusColor = heatColor;
 
 export default function PrayersScreen() {
   const { state, prayerStreak } = useAppStore();
