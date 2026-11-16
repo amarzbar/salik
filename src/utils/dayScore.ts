@@ -146,3 +146,21 @@ export function heatColor(rate: number, scheme: HeatScheme = 'standard'): string
 export function heatText(rate: number, scheme: HeatScheme = 'standard'): string {
   return (HEAT_SCHEMES[scheme] ?? HEAT_SCHEMES.standard).fg[level(rate)];
 }
+
+// Prayer statuses follow the chosen scheme too, so one color means one thing everywhere:
+// on time = complete, late = high, qada' = medium, missed = low, not yet marked = none.
+export type StatusKey = 'pending' | 'ontime' | 'late' | 'qada' | 'missed';
+const STATUS_LEVEL: Record<StatusKey, number> = { pending: 0, missed: 1, qada: 2, late: 3, ontime: 4 };
+
+/** Badge background for a prayer status. */
+export function statusBg(status: StatusKey, scheme: HeatScheme = 'standard'): string {
+  return status === 'pending' ? 'bg-muted' : (HEAT_SCHEMES[scheme] ?? HEAT_SCHEMES.standard).bg[STATUS_LEVEL[status]];
+}
+/** Badge text color for a prayer status. */
+export function statusText(status: StatusKey, scheme: HeatScheme = 'standard'): string {
+  return status === 'pending' ? 'text-muted-fg' : (HEAT_SCHEMES[scheme] ?? HEAT_SCHEMES.standard).fg[STATUS_LEVEL[status]];
+}
+/** Small status dot (lists, journal). */
+export function statusDot(status: StatusKey, scheme: HeatScheme = 'standard'): string {
+  return status === 'pending' ? 'bg-border' : statusBg(status, scheme);
+}

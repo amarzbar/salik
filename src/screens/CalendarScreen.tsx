@@ -6,7 +6,14 @@ import DhikrChecklist from '../components/DhikrChecklist';
 import PrayerChecklist from '../components/PrayerChecklist';
 import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent } from '../store';
 import { observanceIcon, CAL_CATEGORY_ICON } from '../components/categoryIcons';
-import { prayerRate, dhikrRate, dayScore, heatColor, heatText, heatSchemeOf } from '../utils/dayScore';
+import { prayerRate, dhikrRate, dayScore, dayPoints, MAX_DAY_POINTS, heatColor, heatText, heatSchemeOf } from '../utils/dayScore';
+
+// 6.25 → "6¼", 7.5 → "7½"; anything finer (Ta'ziyah parts) to one decimal.
+function fmtPoints(n: number): string {
+  const q = Math.round(n * 4) / 4;
+  if (Math.abs(n - q) < 0.001) { const whole = Math.floor(q); const frac = ['', '¼', '½', '¾'][Math.round((q - whole) * 4)]; return whole === 0 && frac ? frac : `${whole}${frac}`; }
+  return n.toFixed(1);
+}
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -178,7 +185,21 @@ export default function CalendarScreen() {
                 weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
               })}
             </p>
-            {selectedEvents.length > 0 ? (
+            {/* Day score: makes the circle's color readable (prayers 1 each, Wirdul Aam 1,
+                Hasbunallah & Hizbul Bahr ½, Ta'ziyah ¼). */}
+            {selectedDateKey && !isFutureDay && (() => {
+              const pts = dayPoints(state.prayers[selectedDateKey], state.dhikr[selectedDateKey]);
+              return (
+                <div className={`flex items-center gap-2 ${selectedEvents.length > 0 || isFutureDay ? 'mb-3' : ''}`}>
+                  <span className={`w-3 h-3 rounded-full ${heatColor(pts / MAX_DAY_POINTS, heatSchemeOf(state.settings))}`} />
+                  <span className="text-[13px] text-foreground">
+                    Day score <span className="font-semibold tabular-nums">{fmtPoints(pts)}</span>
+                    <span className="text-muted-fg"> of {fmtPoints(MAX_DAY_POINTS)}</span>
+                  </span>
+                </div>
+              );
+            })()}
+            {selectedEvents.length > 0 && (
               <div className="space-y-2">
                 {selectedEvents.map(ev => (
                   <button
@@ -203,8 +224,9 @@ export default function CalendarScreen() {
                   </button>
                 ))}
               </div>
-            ) : (
-              <p className="text-[13px] text-muted-fg italic">No special observances today.</p>
+            )}
+            {selectedEvents.length === 0 && isFutureDay && (
+              <p className="text-[13px] text-muted-fg italic">No special observances this day.</p>
             )}
           </div>
         )}

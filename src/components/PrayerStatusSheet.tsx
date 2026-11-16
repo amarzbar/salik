@@ -7,12 +7,13 @@ import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useAppStore, PRAYER_LABELS, type PrayerName, type PrayerStatus } from '../store';
 import BottomSheet from './BottomSheet';
+import { heatSchemeOf, statusDot } from '../utils/dayScore';
 
-const OPTIONS: { status: PrayerStatus; label: string; hint: string; dot: string }[] = [
-  { status: 'ontime',  label: 'On time', hint: 'Prayed within its time',          dot: 'bg-primary' },
-  { status: 'late',    label: 'Late',    hint: 'Prayed after its preferred time', dot: 'bg-amber-400' },
-  { status: 'qada',    label: "Qada'",   hint: 'Made up after its time ended',    dot: 'bg-purple-500' },
-  { status: 'missed',  label: 'Missed',  hint: 'Not prayed',                      dot: 'bg-red-400' },
+const OPTIONS: { status: PrayerStatus; label: string; hint: string }[] = [
+  { status: 'ontime',  label: 'On time', hint: 'Prayed within its time' },
+  { status: 'late',    label: 'Late',    hint: 'Prayed after its preferred time' },
+  { status: 'qada',    label: "Qada'",   hint: 'Made up after its time ended' },
+  { status: 'missed',  label: 'Missed',  hint: 'Not prayed' },
 ];
 
 interface Target { dateKey: string; prayer: PrayerName }
@@ -53,7 +54,7 @@ export default function PrayerStatusSheet({ dateKey, prayer, onClose }: Target &
                 onClick={() => pick(o.status)}
                 className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition active:bg-muted"
               >
-                <span className={`w-3 h-3 rounded-full flex-shrink-0 ${o.dot}`} />
+                <span className={`w-3 h-3 rounded-full flex-shrink-0 ${statusDot(o.status, heatSchemeOf(state.settings))}`} />
                 <span className="flex-1 min-w-0">
                   <span className="block text-[15px] font-semibold text-foreground">{o.label}</span>
                   <span className="block text-[12px] text-muted-fg">{o.hint}</span>

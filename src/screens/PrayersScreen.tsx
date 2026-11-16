@@ -1,41 +1,30 @@
 import { useMemo, useState } from 'react';
-import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
-import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, hasPrayerStarted, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, PRAYER_LABELS, todayKey, activeDate, toDateKey, type PrayerStatus } from '../store';
 import { usePrayerTap } from '../components/PrayerStatusSheet';
-import { todayHijri, gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
+import { gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import DayPrayerModal from '../components/DayPrayerModal';
-import { heatColor, heatText, heatSchemeOf } from '../utils/dayScore';
+import { heatColor, heatText, heatSchemeOf, statusBg, statusText, statusDot } from '../utils/dayScore';
 
-type View = 'today' | 'history';
 
-const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: string; dot: string }> = {
-  pending: { label: 'Pending',  bg: 'bg-muted',      text: 'text-muted-fg',    dot: 'bg-border' },
-  ontime:  { label: 'On time',  bg: 'bg-primary',    text: 'text-primary-fg',  dot: 'bg-primary' },
-  late:    { label: 'Late',     bg: 'bg-amber-400',  text: 'text-white',       dot: 'bg-amber-400' },
-  qada:    { label: "Qada'",    bg: 'bg-purple-500', text: 'text-white',       dot: 'bg-purple-500' },
-  missed:  { label: 'Missed',   bg: 'bg-red-400',    text: 'text-white',       dot: 'bg-red-400' },
+// Labels only: colors come from the chosen scheme (utils/dayScore statusBg/statusText/statusDot).
+const STATUS_CONFIG: Record<PrayerStatus, { label: string }> = {
+  pending: { label: 'Pending' },
+  ontime: { label: 'On time' },
+  late: { label: 'Late' },
+  qada: { label: "Qada'" },
+  missed: { label: 'Missed' },
 };
 
-const CYCLE_ORDER: PrayerStatus[] = ['pending', 'ontime', 'late', 'qada', 'missed'];
 
 // Heatmap colors live in utils/dayScore so the Calendar shades days identically.
 
 export default function PrayersScreen() {
   const { state, prayerStreak } = useAppStore();
   const prayerTap = usePrayerTap();
-  const [view, setView] = useState<View>('today');
+  const scheme = heatSchemeOf(state.settings);
   const [selectedHistoryDay, setSelectedHistoryDay] = useState<string | null>(null);
   const todayK = todayKey();
   const today = activeDate();
-  const loc = resolveLocation(state.settings, today);
-  const times = useMemo(
-    () => calcPrayerTimes(today, loc.lat, loc.lng, loc.tz, {
-      asrMethod: state.settings.asrMethod,
-      angleMethod: state.settings.angleMethod,
-    }),
-    [loc.lat, loc.lng, loc.tz, state.settings.asrMethod, state.settings.angleMethod]
-  );
-  const hijri = useMemo(() => todayHijri(activeDate()), []);
   const streak = prayerStreak();
 
   // Heatmap: whole Sunday-to-Saturday weeks covering about the past month, from
@@ -56,14 +45,7 @@ export default function PrayersScreen() {
     });
   }, [state.prayers]);
 
-  const prayerTimeMap: Record<string, string> = {
-    fajr: times.fajr, dhuhr: times.dhuhr, asr: times.asr, maghrib: times.maghrib, isha: times.isha,
-  };
 
-  const completedToday = PRAYERS.filter(p => {
-    const s = state.prayers[todayK]?.[p];
-    return s === 'ontime' || s === 'late' || s === 'qada';
-  }).length;
 
   // Last 30 days, today included (rolling, so it doesn't reset on the 1st)
   const monthStats = useMemo(() => {
@@ -86,103 +68,8 @@ export default function PrayersScreen() {
   return (
     <div className="flex flex-col h-full">
       {prayerTap.sheet}
-      {/* Tab switcher */}
-      <div className="flex mx-4 mt-4 mb-3 bg-muted rounded-xl p-1 gap-1">
-        {(['today', 'history'] as View[]).map(v => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            className={[
-              'flex-1 py-2 rounded-lg text-[13px] font-semibold capitalize transition-colors',
-              view === v ? 'bg-card text-foreground shadow-sm' : 'text-muted-fg',
-            ].join(' ')}
-          >
-            {v === 'today' ? "Today's Prayers" : 'History'}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 pb-6">
-        {view === 'today' ? (
-          <div className="space-y-4">
-            {/* Stats row */}
-            <div className="grid grid-cols-3 gap-3">
-              <div className="bg-card rounded-2xl border border-border p-3 text-center">
-                <p className="text-[22px] font-bold text-foreground">{completedToday}/5</p>
-                <p className="text-[11px] text-muted-fg uppercase tracking-wide mt-0.5">Today</p>
-              </div>
-              <div className="bg-card rounded-2xl border border-border p-3 text-center">
-                <p className="text-[22px] font-bold text-foreground">{streak}</p>
-                <p className="text-[11px] text-muted-fg uppercase tracking-wide mt-0.5">Day streak</p>
-              </div>
-              <div className="bg-card rounded-2xl border border-border p-3 text-center">
-                <p className="text-[22px] font-bold text-foreground">{monthStats.pct}%</p>
-                <p className="text-[11px] text-muted-fg uppercase tracking-wide mt-0.5">Last 30 days</p>
-              </div>
-            </div>
-
-            {/* Date */}
-            <div className="px-1">
-              <h3 className="text-[18px] font-bold text-foreground">
-                {today.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
-              </h3>
-              <p className="text-[13px] text-muted-fg">{hijri.day} {HIJRI_MONTHS[hijri.month - 1]} {hijri.year} AH</p>
-            </div>
-
-            {/* Prayer list */}
-            <div className="bg-card rounded-2xl border border-border overflow-hidden">
-              {PRAYERS.map((prayer, idx) => {
-                const status = state.prayers[todayK]?.[prayer] ?? 'pending';
-                const cfg = STATUS_CONFIG[status];
-                const notYet = status === 'pending' && !hasPrayerStarted(todayK, prayer);
-                return (
-                  <div key={prayer}>
-                    {idx > 0 && <div className="h-px bg-border mx-4" />}
-                    <button
-                      onClick={() => prayerTap.onTap(todayK, prayer)}
-                      disabled={notYet}
-                      className="w-full flex items-center gap-4 px-4 py-4 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
-                    >
-                      {/* Status indicator */}
-                      <div className={`w-3 h-3 rounded-full flex-shrink-0 ${cfg.dot}`} />
-
-                      {/* Prayer name */}
-                      <div className="flex-1 text-left">
-                        <p className="text-[16px] font-semibold text-foreground">{PRAYER_LABELS[prayer]}</p>
-                        <p className="text-[13px] text-muted-fg">{prayerTimeMap[prayer]}</p>
-                      </div>
-
-                      {/* Status badge */}
-                      <span className={`text-[12px] font-semibold px-3 py-1.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-                        {notYet ? 'Not yet' : cfg.label}
-                      </span>
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Status legend */}
-            <div className="bg-card rounded-2xl border border-border p-4">
-              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-3">Statuses</h3>
-              <div className="flex flex-wrap gap-2">
-                {CYCLE_ORDER.map(s => {
-                  const c = STATUS_CONFIG[s];
-                  return (
-                    <span key={s} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${c.bg} ${c.text}`}>
-                      {c.label}
-                    </span>
-                  );
-                })}
-              </div>
-              <p className="text-[12px] text-muted-fg mt-2">
-                Tap a prayer to mark it done: on time, late or qada&apos; is worked out from the clock and
-                this prayer&apos;s window. Tap a marked prayer to change it, e.g. to on time if you prayed
-                on time but logged it later.
-              </p>
-            </div>
-          </div>
-        ) : (
+      {/* The Prayers tab is stats and history; today's prayers are marked on the Today screen. */}
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-6">
           <div className="space-y-4">
             {/* Stats */}
             <div className="grid grid-cols-2 gap-3">
@@ -200,7 +87,7 @@ export default function PrayersScreen() {
 
             {/* Heatmap */}
             <div className="bg-card rounded-2xl border border-border p-4">
-              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-4">Past Month</h3>
+              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-4">Past Month · Prayers only</h3>
               <div className="grid grid-cols-7 gap-1 mb-2">
                 {['S','M','T','W','T','F','S'].map((d, i) => (
                   <div key={i} className="text-center text-[10px] text-muted-fg font-medium">{d}</div>
@@ -264,7 +151,7 @@ export default function PrayersScreen() {
                       {PRAYERS.map(p => {
                         const s = state.prayers[key]?.[p] ?? 'pending';
                         return (
-                          <div key={p} className={`w-2 h-2 rounded-full ${STATUS_CONFIG[s].dot}`} title={`${PRAYER_LABELS[p]}: ${s}`} />
+                          <div key={p} className={`w-2 h-2 rounded-full ${statusDot(s, scheme)}`} title={`${PRAYER_LABELS[p]}: ${s}`} />
                         );
                       })}
                       <span className="text-[12px] text-muted-fg ml-1 tabular-nums">{completed}/5</span>
@@ -273,8 +160,24 @@ export default function PrayersScreen() {
                 );
               })}
             </div>
+
+            {/* Status legend */}
+            <div className="bg-card rounded-2xl border border-border p-4">
+              <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mb-3">Statuses</h3>
+              <div className="flex flex-wrap gap-2">
+                {(['ontime', 'late', 'qada', 'missed', 'pending'] as PrayerStatus[]).map(s => (
+                  <span key={s} className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${statusBg(s, scheme)} ${statusText(s, scheme)}`}>
+                    {STATUS_CONFIG[s].label}
+                  </span>
+                ))}
+              </div>
+              <p className="text-[12px] text-muted-fg mt-2">
+                Tap a prayer to mark it done: on time, late or qada&apos; is worked out from the clock and
+                this prayer&apos;s window. Tap a marked prayer to change it, e.g. to on time if you prayed
+                on time but logged it later.
+              </p>
+            </div>
           </div>
-        )}
       </div>
 
       {selectedHistoryDay && (

@@ -6,13 +6,15 @@ import { useMemo } from 'react';
 import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { useAppStore, PRAYERS, PRAYER_LABELS, dateFromKey, hasPrayerStarted, type PrayerStatus } from '../store';
 import { usePrayerTap } from './PrayerStatusSheet';
+import { heatSchemeOf, statusBg, statusText, statusDot } from '../utils/dayScore';
 
-const STATUS_CONFIG: Record<PrayerStatus, { label: string; bg: string; text: string }> = {
-  pending: { label: 'Tap',     bg: 'bg-muted',       text: 'text-muted-fg' },
-  ontime:  { label: 'On time', bg: 'bg-primary',     text: 'text-primary-fg' },
-  late:    { label: 'Late',    bg: 'bg-amber-400',   text: 'text-white' },
-  qada:    { label: "Qada'",   bg: 'bg-purple-500',  text: 'text-white' },
-  missed:  { label: 'Missed',  bg: 'bg-red-400',     text: 'text-white' },
+// Labels only: colors come from the chosen scheme (utils/dayScore statusBg/statusText/statusDot).
+const STATUS_CONFIG: Record<PrayerStatus, { label: string }> = {
+  pending: { label: 'Tap' },
+  ontime: { label: 'On time' },
+  late: { label: 'Late' },
+  qada: { label: "Qada'" },
+  missed: { label: 'Missed' },
 };
 
 interface Props {
@@ -21,6 +23,7 @@ interface Props {
 
 export default function PrayerChecklist({ dateKey }: Props) {
   const { state } = useAppStore();
+  const scheme = heatSchemeOf(state.settings); // badges follow the chosen color scheme
   const prayerTap = usePrayerTap();
   const loc = resolveLocation(state.settings, dateFromKey(dateKey));
   const times = useMemo(
@@ -60,12 +63,12 @@ export default function PrayerChecklist({ dateKey }: Props) {
               className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
             >
               <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${status === 'pending' ? 'bg-border' : cfg.bg}`} />
+                <div className={`w-2 h-2 rounded-full ${statusDot(status, scheme)}`} />
                 <span className="text-[15px] font-medium text-foreground">{PRAYER_LABELS[prayer]}</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <span className="text-[13px] text-muted-fg">{prayerTimeMap[prayer]}</span>
-                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
+                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusBg(status, scheme)} ${statusText(status, scheme)}`}>
                   {notYet ? 'Not yet' : cfg.label}
                 </span>
               </div>

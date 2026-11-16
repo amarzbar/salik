@@ -257,11 +257,28 @@ export default function SettingsScreen({ onBack }: Props) {
                       </button>
                     ))}
                   </div>
+                  <p className="text-[13px] text-muted-fg mt-5 mb-3">Color theme, used across the app.</p>
+                  <div className="grid grid-cols-5 gap-2">
+                    {THEMES.map(t => {
+                      const active = (s.theme ?? 'emerald') === t.id;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => updateSettings({ theme: t.id as Theme })}
+                          aria-label={t.label}
+                          className={['flex flex-col items-center gap-1.5 py-2.5 rounded-xl border transition-colors', active ? 'border-primary bg-secondary' : 'border-border bg-card'].join(' ')}
+                        >
+                          <span className="w-6 h-6 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: t.swatch }} />
+                          <span className={['text-[11px] font-medium', active ? 'text-primary' : 'text-muted-fg'].join(' ')}>{t.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <button
                     role="switch"
                     aria-checked={!!s.oled}
                     onClick={() => updateSettings({ oled: !s.oled })}
-                    className={['mt-3 w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors', s.oled ? 'bg-secondary border-primary' : 'bg-card border-border'].join(' ')}
+                    className={['mt-4 w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors', s.oled ? 'bg-secondary border-primary' : 'bg-card border-border'].join(' ')}
                   >
                     <span className="w-6 h-6 rounded-full shrink-0 border border-white/20" style={{ backgroundColor: '#000' }} />
                     <span className="flex-1 min-w-0">
@@ -272,8 +289,8 @@ export default function SettingsScreen({ onBack }: Props) {
                       <span className={['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', s.oled ? 'left-[18px]' : 'left-0.5'].join(' ')} />
                     </span>
                   </button>
-                  <p className="text-[13px] text-muted-fg mt-5 mb-1">Calendar &amp; prayer history colors.</p>
-                  <p className="text-[12px] text-muted-fg/80 mb-3">Low to complete. All but Standard are colorblind-friendly.</p>
+                  <h4 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg mt-7 mb-1">Calendar colors</h4>
+                  <p className="text-[12px] text-muted-fg mb-3">How days and prayer statuses are colored, from low to complete. All but Standard are colorblind-friendly.</p>
                   <div className="space-y-2" role="radiogroup" aria-label="Heatmap colors">
                     {(Object.entries(HEAT_SCHEMES) as [HeatScheme, typeof HEAT_SCHEMES[HeatScheme]][]).map(([id, sch]) => {
                       const active = heatSchemeOf(s) === id;
@@ -295,23 +312,6 @@ export default function SettingsScreen({ onBack }: Props) {
                             <span className="block text-[12px] text-muted-fg">{sch.description}</span>
                           </span>
                           <span className={['w-4 h-4 rounded-full border-2 shrink-0', active ? 'border-primary bg-primary shadow-[inset_0_0_0_3px_var(--card)]' : 'border-border'].join(' ')} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <p className="text-[13px] text-muted-fg mt-5 mb-3">Color theme.</p>
-                  <div className="grid grid-cols-5 gap-2">
-                    {THEMES.map(t => {
-                      const active = (s.theme ?? 'emerald') === t.id;
-                      return (
-                        <button
-                          key={t.id}
-                          onClick={() => updateSettings({ theme: t.id as Theme })}
-                          aria-label={t.label}
-                          className={['flex flex-col items-center gap-1.5 py-2.5 rounded-xl border transition-colors', active ? 'border-primary bg-secondary' : 'border-border bg-card'].join(' ')}
-                        >
-                          <span className="w-6 h-6 rounded-full border border-black/10 shadow-sm" style={{ backgroundColor: t.swatch }} />
-                          <span className={['text-[11px] font-medium', active ? 'text-primary' : 'text-muted-fg'].join(' ')}>{t.label}</span>
                         </button>
                       );
                     })}

@@ -4,14 +4,8 @@ import VoiceNoteButton from '../components/VoiceNoteButton';
 import { LuNotebook } from 'react-icons/lu';
 import { gregorianToHijri, HIJRI_MONTHS } from '../utils/hijri';
 import { PRAYERS, type PrayerStatus } from '../store';
+import { heatSchemeOf, statusDot } from '../utils/dayScore';
 
-const STATUS_DOT: Record<PrayerStatus, string> = {
-  pending: 'bg-border',
-  ontime:  'bg-primary',
-  late:    'bg-amber-400',
-  qada:    'bg-purple-500',
-  missed:  'bg-red-400',
-};
 
 export default function JournalScreen() {
   const { state, setJournal } = useAppStore();
@@ -63,7 +57,7 @@ export default function JournalScreen() {
                 const s = state.prayers[todayK]?.[p] ?? 'pending';
                 return (
                   <div key={p} className="flex flex-col items-center gap-1">
-                    <div className={`w-2.5 h-2.5 rounded-full ${STATUS_DOT[s]}`} />
+                    <div className={`w-2.5 h-2.5 rounded-full ${statusDot(s, heatSchemeOf(state.settings))}`} />
                     <span className="text-[9px] text-muted-fg leading-none">{p[0].toUpperCase()}</span>
                   </div>
                 );
@@ -157,7 +151,7 @@ export default function JournalScreen() {
                     <div className="flex gap-1 mt-0.5">
                       {PRAYERS.map(p => {
                         const s = state.prayers[key]?.[p] ?? 'pending';
-                        return <div key={p} className={`w-2 h-2 rounded-full ${STATUS_DOT[s]}`} />;
+                        return <div key={p} className={`w-2 h-2 rounded-full ${statusDot(s, heatSchemeOf(state.settings))}`} />;
                       })}
                     </div>
                   </div>
