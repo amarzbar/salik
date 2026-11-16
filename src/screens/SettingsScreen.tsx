@@ -5,6 +5,7 @@ import { subscribeToPush, unsubscribeFromPush } from '../push';
 import type { IconType } from 'react-icons';
 import { LuBell, LuPalette, LuMapPin, LuInfo, LuSunMoon, LuSun, LuMoon } from 'react-icons/lu';
 import { GiPrayerBeads } from 'react-icons/gi';
+import { HEAT_SCHEMES, heatSchemeOf, type HeatScheme } from '../utils/dayScore';
 
 interface Props { onBack: () => void; }
 
@@ -271,25 +272,33 @@ export default function SettingsScreen({ onBack }: Props) {
                       <span className={['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', s.oled ? 'left-[18px]' : 'left-0.5'].join(' ')} />
                     </span>
                   </button>
-                  <button
-                    role="switch"
-                    aria-checked={!!s.colorblind}
-                    onClick={() => updateSettings({ colorblind: !s.colorblind })}
-                    className={['mt-2 w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border text-left transition-colors', s.colorblind ? 'bg-secondary border-primary' : 'bg-card border-border'].join(' ')}
-                  >
-                    <span className="flex shrink-0 -space-x-1.5">
-                      {['#D55E00', '#E69F00', '#56B4E9', '#0072B2'].map(c => (
-                        <span key={c} className="w-4 h-4 rounded-full border border-background" style={{ backgroundColor: c }} />
-                      ))}
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className={['block text-[13px] font-medium', s.colorblind ? 'text-primary' : 'text-foreground'].join(' ')}>Colorblind-friendly colors</span>
-                      <span className="block text-[12px] text-muted-fg">Calendar and prayer history use orange to blue instead of red to green, easier to tell apart.</span>
-                    </span>
-                    <span className={['relative w-10 h-6 rounded-full shrink-0 transition-colors', s.colorblind ? 'bg-primary' : 'bg-muted border border-border'].join(' ')}>
-                      <span className={['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all', s.colorblind ? 'left-[18px]' : 'left-0.5'].join(' ')} />
-                    </span>
-                  </button>
+                  <p className="text-[13px] text-muted-fg mt-5 mb-1">Calendar &amp; prayer history colors.</p>
+                  <p className="text-[12px] text-muted-fg/80 mb-3">Low to complete. All but Standard are colorblind-friendly.</p>
+                  <div className="space-y-2" role="radiogroup" aria-label="Heatmap colors">
+                    {(Object.entries(HEAT_SCHEMES) as [HeatScheme, typeof HEAT_SCHEMES[HeatScheme]][]).map(([id, sch]) => {
+                      const active = heatSchemeOf(s) === id;
+                      return (
+                        <button
+                          key={id}
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() => updateSettings({ heatScheme: id, colorblind: id !== 'standard' })}
+                          className={['w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl border text-left transition-colors', active ? 'bg-secondary border-primary' : 'bg-card border-border'].join(' ')}
+                        >
+                          <span className="flex shrink-0 gap-0.5">
+                            {sch.swatches.map(c => (
+                              <span key={c} className="w-4 h-4 rounded-full border border-black/10" style={{ backgroundColor: c }} />
+                            ))}
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className={['block text-[13px] font-medium', active ? 'text-primary' : 'text-foreground'].join(' ')}>{sch.label}</span>
+                            <span className="block text-[12px] text-muted-fg">{sch.description}</span>
+                          </span>
+                          <span className={['w-4 h-4 rounded-full border-2 shrink-0', active ? 'border-primary bg-primary shadow-[inset_0_0_0_3px_var(--card)]' : 'border-border'].join(' ')} />
+                        </button>
+                      );
+                    })}
+                  </div>
                   <p className="text-[13px] text-muted-fg mt-5 mb-3">Color theme.</p>
                   <div className="grid grid-cols-5 gap-2">
                     {THEMES.map(t => {

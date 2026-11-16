@@ -3,9 +3,10 @@ import { todayHijri, gregorianToHijri, hijriToGregorian, hijriMonthDays, hijriMo
 import { eventsForDay, hasEventOnDay, ISLAMIC_EVENTS, type IslamicEvent } from '../data/islamicEvents';
 import EventDetailModal from '../components/EventDetailModal';
 import DhikrChecklist from '../components/DhikrChecklist';
+import PrayerChecklist from '../components/PrayerChecklist';
 import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent } from '../store';
 import { observanceIcon, CAL_CATEGORY_ICON } from '../components/categoryIcons';
-import { prayerRate, dhikrRate, dayScore, heatColor, heatText } from '../utils/dayScore';
+import { prayerRate, dhikrRate, dayScore, heatColor, heatText, heatSchemeOf } from '../utils/dayScore';
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -120,7 +121,7 @@ export default function CalendarScreen() {
             const dRate = tracked ? dhikrRate(state.dhikr[dKey]) : 0;
             const score = tracked ? dayScore(state.prayers[dKey], state.dhikr[dKey]) : 0;
             const complete = pRate === 1 && dRate === 1;
-            const cb = !!state.settings.colorblind;
+            const cb = heatSchemeOf(state.settings);
 
             return (
               <button
@@ -158,7 +159,7 @@ export default function CalendarScreen() {
           <div className="flex items-center gap-1.5">
             <span className="text-[11px] text-muted-fg">Less</span>
             {[0, 0.2, 0.6, 0.9, 1].map(r => (
-              <span key={r} className={`w-3.5 h-3.5 rounded-full ${heatColor(r, !!state.settings.colorblind)}`} />
+              <span key={r} className={`w-3.5 h-3.5 rounded-full ${heatColor(r, heatSchemeOf(state.settings))}`} />
             ))}
             <span className="text-[11px] text-muted-fg">More</span>
           </div>
@@ -208,10 +209,12 @@ export default function CalendarScreen() {
           </div>
         )}
 
-        {/* Dhikr for the selected day — retroactively editable, same component as elsewhere.
-            Only for today or a past day; there's nothing to mark for a day that hasn't happened yet. */}
+        {/* Prayers and dhikr for the selected day, so the circle's color can be read at a glance.
+            Both retroactively editable, same components as elsewhere. Only for today or a past
+            day; there's nothing to mark for a day that hasn't happened yet. */}
         {selectedDay && selectedDateKey && !isFutureDay && (
-          <div className="mx-4 mt-4">
+          <div className="mx-4 mt-4 space-y-4">
+            <PrayerChecklist dateKey={selectedDateKey} />
             <DhikrChecklist dateKey={selectedDateKey} />
           </div>
         )}

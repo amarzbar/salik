@@ -69,23 +69,80 @@ function level(rate: number): 0 | 1 | 2 | 3 | 4 {
   return 4;
 }
 
-// Standard scale: red → amber → green.
-const STANDARD_BG = ['bg-muted', 'bg-red-300 dark:bg-red-800', 'bg-amber-300 dark:bg-amber-700', 'bg-primary/50', 'bg-primary'];
-const STANDARD_FG = ['text-foreground', 'text-red-950 dark:text-white', 'text-amber-950 dark:text-white', 'text-foreground', 'text-primary-fg'];
+// Color schemes for every heatmap (Settings → Appearance → Heatmap colors). Each lists five
+// fills for none / low / medium / high / complete, a readable text color for each, and hex
+// swatches for the picker. Classes are written out in full so Tailwind generates them.
+export type HeatScheme = 'standard' | 'okabe' | 'viridis' | 'cividis' | 'bluered' | 'blues';
 
-// Colorblind-friendly scale (Settings → Appearance): Okabe–Ito colors running orange → blue,
-// which stay distinct for red-green (deutan/protan) and blue-yellow (tritan) color blindness,
-// and step in brightness too, so the levels separate even in grayscale.
-//   low = vermillion, medium = gold, high = sky blue, complete = deep blue
-const CB_BG = ['bg-muted', 'bg-[#D55E00]', 'bg-[#E69F00]', 'bg-[#56B4E9]', 'bg-[#0072B2]'];
-const CB_FG = ['text-foreground', 'text-white', 'text-[#1A1A1A]', 'text-[#1A1A1A]', 'text-white'];
+export interface HeatSchemeDef {
+  label: string;
+  description: string;
+  bg: string[];       // 5 classes: none, low, medium, high, complete
+  fg: string[];       // matching text classes
+  swatches: string[]; // low → complete, for the picker
+}
+
+export const HEAT_SCHEMES: Record<HeatScheme, HeatSchemeDef> = {
+  standard: {
+    label: 'Standard',
+    description: 'Red to green, in your color theme.',
+    bg: ['bg-muted', 'bg-red-300 dark:bg-red-800', 'bg-amber-300 dark:bg-amber-700', 'bg-primary/50', 'bg-primary'],
+    fg: ['text-foreground', 'text-red-950 dark:text-white', 'text-amber-950 dark:text-white', 'text-foreground', 'text-primary-fg'],
+    swatches: ['#FCA5A5', '#FCD34D', '#8FCBAF', '#1C7A52'],
+  },
+  // Okabe–Ito: distinct for red-green and blue-yellow color blindness, and steps in brightness.
+  okabe: {
+    label: 'Orange → Blue',
+    description: 'Strong contrast for most kinds of color blindness.',
+    bg: ['bg-muted', 'bg-[#D55E00]', 'bg-[#E69F00]', 'bg-[#56B4E9]', 'bg-[#0072B2]'],
+    fg: ['text-foreground', 'text-white', 'text-[#1A1A1A]', 'text-[#1A1A1A]', 'text-white'],
+    swatches: ['#D55E00', '#E69F00', '#56B4E9', '#0072B2'],
+  },
+  // Viridis: perceptually even, brightness rises steadily, so it also reads in grayscale.
+  viridis: {
+    label: 'Viridis',
+    description: 'Purple to yellow; reads evenly, even in grayscale.',
+    bg: ['bg-muted', 'bg-[#482878]', 'bg-[#31688E]', 'bg-[#35B779]', 'bg-[#FDE725]'],
+    fg: ['text-foreground', 'text-white', 'text-white', 'text-[#1A1A1A]', 'text-[#1A1A1A]'],
+    swatches: ['#482878', '#31688E', '#35B779', '#FDE725'],
+  },
+  // Cividis: designed for red-green color blindness; looks nearly the same with or without it.
+  cividis: {
+    label: 'Cividis',
+    description: 'Navy to yellow, built for red-green color blindness.',
+    bg: ['bg-muted', 'bg-[#00224E]', 'bg-[#575D6D]', 'bg-[#A69D75]', 'bg-[#FEE838]'],
+    fg: ['text-foreground', 'text-white', 'text-white', 'text-[#1A1A1A]', 'text-[#1A1A1A]'],
+    swatches: ['#00224E', '#575D6D', '#A69D75', '#FEE838'],
+  },
+  // Blue–red diverging (ColorBrewer RdBu): two clearly opposite ends.
+  bluered: {
+    label: 'Blue → Red',
+    description: 'Two clearly opposite ends: blue is low, deep red is complete.',
+    bg: ['bg-muted', 'bg-[#2166AC]', 'bg-[#92C5DE]', 'bg-[#F4A582]', 'bg-[#B2182B]'],
+    fg: ['text-foreground', 'text-white', 'text-[#1A1A1A]', 'text-[#1A1A1A]', 'text-white'],
+    swatches: ['#2166AC', '#92C5DE', '#F4A582', '#B2182B'],
+  },
+  // Single-hue blue: pure lightness, safe even with no color vision at all.
+  blues: {
+    label: 'Single blue',
+    description: 'Pale to deep blue; safest for any color vision.',
+    bg: ['bg-muted', 'bg-[#C6DBEF]', 'bg-[#6BAED6]', 'bg-[#2171B5]', 'bg-[#08306B]'],
+    fg: ['text-foreground', 'text-[#1A1A1A]', 'text-[#1A1A1A]', 'text-white', 'text-white'],
+    swatches: ['#C6DBEF', '#6BAED6', '#2171B5', '#08306B'],
+  },
+};
+
+/** The scheme the user picked (older installs used an on/off "colorblind" switch = Orange → Blue). */
+export function heatSchemeOf(settings: { heatScheme?: HeatScheme; colorblind?: boolean }): HeatScheme {
+  return settings.heatScheme ?? (settings.colorblind ? 'okabe' : 'standard');
+}
 
 /** Heatmap fill for a 0–1 rate (same scale on Prayer History and the Calendar). */
-export function heatColor(rate: number, colorblind = false): string {
-  return (colorblind ? CB_BG : STANDARD_BG)[level(rate)];
+export function heatColor(rate: number, scheme: HeatScheme = 'standard'): string {
+  return (HEAT_SCHEMES[scheme] ?? HEAT_SCHEMES.standard).bg[level(rate)];
 }
 
 /** Readable text color to put on top of heatColor(rate). */
-export function heatText(rate: number, colorblind = false): string {
-  return (colorblind ? CB_FG : STANDARD_FG)[level(rate)];
+export function heatText(rate: number, scheme: HeatScheme = 'standard'): string {
+  return (HEAT_SCHEMES[scheme] ?? HEAT_SCHEMES.standard).fg[level(rate)];
 }

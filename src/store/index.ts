@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { calcPrayerTimes, resolveLocation, type AsrMethod, type AngleMethodId } from '../utils/prayerTimes';
+import type { HeatScheme } from '../utils/dayScore';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -101,7 +102,8 @@ export interface AppState {
     darkMode:          'system' | 'light' | 'dark';
     theme?:            Theme; // color palette (missing = 'emerald', the original)
     oled?:             boolean; // pure-black dark mode for OLED screens (missing = off)
-    colorblind?:       boolean; // colorblind-friendly heatmap colors (missing = off)
+    colorblind?:       boolean; // legacy on/off switch; read as heatScheme 'okabe' when heatScheme is unset
+    heatScheme?:       HeatScheme; // heatmap colors for Calendar + Prayer History (missing = 'standard')
     notifications:     boolean;
     prayerNotifs:      boolean;
     prayerStartNotifs?: boolean; // alert the moment each prayer time enters (missing = on)

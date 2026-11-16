@@ -45,6 +45,9 @@ export default function TodayScreen({ onNavigate }: Props) {
   const reminder = useMemo(() => reminderForDay(today), [todayK]);
   const [selectedEvent, setSelectedEvent] = useState<IslamicEvent | null>(null);
   const [journalOpen, setJournalOpen] = useState<boolean>(!!state.journal[todayK]?.text);
+  // Focus the journal only when the user opens it, never on page load: when today already has
+  // an entry the card renders open, and autofocusing it scrolled the page down to the textarea.
+  const [focusJournal, setFocusJournal] = useState(false);
   const [journalText, setJournalText] = useState(state.journal[todayK]?.text ?? '');
 
   const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
@@ -253,7 +256,7 @@ export default function TodayScreen({ onNavigate }: Props) {
       {/* Slim journal */}
       {!journalOpen ? (
         <button
-          onClick={() => setJournalOpen(true)}
+          onClick={() => { setJournalOpen(true); setFocusJournal(true); }}
           className="w-full flex items-center gap-3 p-4 rounded-2xl bg-card border border-border text-left transition active:scale-[0.99]"
         >
           <LuPenLine className="text-[18px] text-muted-fg flex-shrink-0" />
@@ -271,7 +274,7 @@ export default function TodayScreen({ onNavigate }: Props) {
             onBlur={() => { if (journalText.trim()) setJournal(todayK, journalText); }}
             placeholder="Write something to remember today…"
             rows={3}
-            autoFocus
+            autoFocus={focusJournal}
             className="w-full resize-none bg-muted rounded-xl p-3 text-[16px] text-foreground placeholder:text-muted-fg border-none outline-none"
           />
           <div className="flex items-center justify-between gap-2 mt-2">
