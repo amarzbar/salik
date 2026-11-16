@@ -1,7 +1,8 @@
 // Today's call-to-action cards: instead of full prayer and dhikr lists on the Today screen,
 // each card names the ONE next thing to do (the prayer that has entered, a prayer still
 // waiting, the dhikr that's due) with a single-tap button, and changes as the day moves on.
-// "See all" opens the full list in a sheet for changing or fixing anything.
+// "See all" opens a shelf: today's stats, the full editable list, and, once today is done,
+// "Review earlier days".
 
 import { useState } from 'react';
 import { LuBellRing, LuCircleCheck, LuHourglass, LuSparkles } from 'react-icons/lu';
@@ -12,11 +13,10 @@ import {
 import type { PrayerName } from '../store';
 import DayPrayerModal from './DayPrayerModal';
 import DhikrChecklist from './DhikrChecklist';
+import PrayerChecklist from './PrayerChecklist';
 import BottomSheet from './BottomSheet';
-import { heatSchemeOf, statusBg, statusText, type StatusKey } from '../utils/dayScore';
 
 const KEPT: PrayerStatus[] = ['ontime', 'late', 'qada'];
-const STATUS_LABEL: Record<StatusKey, string> = { pending: 'Not marked', ontime: 'On time', late: 'Late', qada: "Qada'", missed: 'Missed' };
 const isKept = (s: PrayerStatus | undefined) => !!s && KEPT.includes(s);
 const list = (names: string[]) => names.length <= 1 ? names.join('') : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 
@@ -70,24 +70,41 @@ function earlierDays(firstLogged: string | undefined): string[] {
   return out;
 }
 
-// "Look back" call to action under a completed day: opens the most recent earlier day that
-// still has something to make up; the count falls as days are filled in.
-function LookBack({ count, unit, onOpen }: { count: number; unit: string; onOpen: () => void }) {
-  if (count === 0) {
-    return <p className="mt-4 text-center text-[12px] text-muted-fg">Nothing left to make up in the last {LOOKBACK_DAYS} days. Alhamdulillah.</p>;
-  }
+// The pop-up shelf behind "See all": today's stats, today's full (editable) list, and, only
+// once everything today is done, a single "Review earlier days" button that opens the most
+// recent earlier day still holding something to make up.
+function TodayShelf({ title, stats, children, showReview, onReview, onClose }: {
+  title: string;
+  stats: { value: string; label: string; sub?: string }[];
+  children: React.ReactNode;
+  showReview: boolean;
+  onReview: () => void;
+  onClose: () => void;
+}) {
   return (
-    <div className="mt-4 rounded-xl border border-border bg-background/60 p-3">
-      <p className="text-[13px] text-foreground">
-        <span className="font-semibold">{count} earlier {count === 1 ? 'day has' : 'days have'}</span> room for more {unit}.
-      </p>
-      <button onClick={onOpen} className="w-full mt-2.5 py-2.5 rounded-lg bg-primary text-primary-fg font-semibold text-[14px] transition active:scale-[0.99]">
-        Review earlier days
-      </button>
-    </div>
+    <BottomSheet onClose={onClose}>
+      <div className="px-5 pb-5">
+        <h2 className="text-xl font-bold text-foreground mb-4">{title}</h2>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          {stats.map(s => (
+            <div key={s.label} className="bg-card rounded-2xl border border-border p-3 text-center">
+              <p className="text-[24px] font-bold text-foreground leading-tight">{s.value}</p>
+              <p className="text-[11px] text-muted-fg uppercase tracking-wide mt-0.5">{s.label}</p>
+              {s.sub && <p className="text-[11px] text-muted-fg mt-0.5">{s.sub}</p>}
+            </div>
+          ))}
+        </div>
+        {children}
+        {showReview && (
+          <button onClick={onReview} className="w-full mt-4 py-3 rounded-xl bg-primary text-primary-fg font-semibold text-[15px] transition active:scale-[0.99]">
+            Review earlier days
+          </button>
+        )}
+        <button onClick={onClose} className="w-full mt-3 py-3 rounded-xl bg-secondary text-primary font-semibold text-[14px]">Done</button>
+      </div>
+    </BottomSheet>
   );
 }
-
 const SeeAll = ({ label, onClick }: { label: string; onClick: () => void }) => (
   <button onClick={onClick} className="text-[13px] font-medium text-primary py-1.5 px-2">{label} ›</button>
 );
@@ -112,11 +129,15 @@ export function PrayerCallCard({ times, streak, onTap }: {
   const keptCount = PRAYERS.filter(p => isKept(day[p])).length;
   const footer = <SeeAll label="See all prayers" onClick={() => setShowAll(true)} />;
   const L = (p: PrayerName) => PRAYER_LABELS[p];
-  const scheme = heatSchemeOf(state.settings);
   const [lookBackDay, setLookBackDay] = useState<string | null>(null);
   // Earlier days with a prayer not yet kept (unmarked or marked missed), most recent first.
   const firstLogged = Object.keys(state.prayers).filter(k => Object.keys(state.prayers[k] ?? {}).length).sort()[0];
-  const prayerGaps = earlierDays(firstLogged).filter(k => PRAYERS.some(p => !isKept(state.prayers[k]?.[p])));
+  const pWindow = earlierDays(firstLogged);
+  const prayerGaps = pWindow.filter(k => PRAYERS.some(p => !isKept(state.prayers[k]?.[p])));
+  // Last 30 days (today included, never before the first logged day): prayers kept / possible.
+  const days30 = [todayK, ...pWindow].slice(0, LOOKBACK_DAYS);
+  const kept30 = days30.reduce((a, k) => a + PRAYERS.filter(p => isKept(state.prayers[k]?.[p])).length, 0);
+  const pct30 = days30.length ? Math.round((kept30 / (days30.length * PRAYERS.length)) * 100) : 0;
 
   let card: React.ReactNode;
   if (current && !isKept(day[current])) {
@@ -139,24 +160,7 @@ export function PrayerCallCard({ times, streak, onTap }: {
       <Card tone="done" eyebrow="Prayers"
         title="All five kept today"
         body={`Alhamdulillah. May Allah accept them from you.${streak > 1 ? ` That's ${streak} days in a row.` : ''}`}
-        footer={footer}>
-        {/* The completed set: tap one to change its status */}
-        <div className="mt-3 divide-y divide-border rounded-xl border border-border overflow-hidden">
-          {PRAYERS.map(p => {
-            const s = (day[p] ?? 'pending') as StatusKey;
-            return (
-              <button key={p} onClick={() => onTap(todayK, p)} className="w-full flex items-center justify-between px-3 py-2 text-left transition active:bg-muted">
-                <span className="text-[14px] font-medium text-foreground">{L(p)}</span>
-                <span className="flex items-center gap-2">
-                  <span className="text-[12px] text-muted-fg">{times[p]}</span>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusBg(s, scheme)} ${statusText(s, scheme)}`}>{STATUS_LABEL[s]}</span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-        <LookBack count={prayerGaps.length} unit="prayer" onOpen={() => setLookBackDay(prayerGaps[0])} />
-      </Card>
+        footer={footer} />
     );
   } else {
     card = (
@@ -172,7 +176,20 @@ export function PrayerCallCard({ times, streak, onTap }: {
   return (
     <>
       {card}
-      {showAll && <DayPrayerModal dateKey={todayK} onClose={() => setShowAll(false)} />}
+      {showAll && (
+        <TodayShelf
+          title="Today's prayers"
+          stats={[
+            { value: String(streak), label: 'Day streak', sub: 'All 5 prayers' },
+            { value: `${pct30}%`, label: 'Last 30 days', sub: `${kept30}/${days30.length * PRAYERS.length} prayers` },
+          ]}
+          showReview={keptCount === PRAYERS.length && prayerGaps.length > 0}
+          onReview={() => { setShowAll(false); setLookBackDay(prayerGaps[0]); }}
+          onClose={() => setShowAll(false)}
+        >
+          <PrayerChecklist dateKey={todayK} />
+        </TodayShelf>
+      )}
       {lookBackDay && <DayPrayerModal dateKey={lookBackDay} onClose={() => setLookBackDay(null)} />}
     </>
   );
@@ -218,7 +235,19 @@ export function DhikrCallCard() {
   const tasks = dhikrTasks(state.dhikr[todayK] ?? {}, todayK);
   // Earlier days whose dhikr isn't complete, most recent first.
   const firstDhikr = Object.keys(state.dhikr).filter(k => Object.keys(state.dhikr[k] ?? {}).length).sort()[0];
-  const dhikrGaps = earlierDays(firstDhikr).filter(k => dhikrTasks(state.dhikr[k] ?? {}, k).some(x => !x.done));
+  const dWindow = earlierDays(firstDhikr);
+  const dhikrGaps = dWindow.filter(k => dhikrTasks(state.dhikr[k] ?? {}, k).some(x => !x.done));
+  const dayDone = (k: string) => dhikrTasks(state.dhikr[k] ?? {}, k).every(x => x.done);
+  // Streak of days with every dhikr complete (today counts once it's complete).
+  let dStreak = dayDone(todayK) ? 1 : 0;
+  for (const k of dWindow) { if (dayDone(k)) dStreak++; else break; }
+  // Last 30 days: share of all dhikr steps completed.
+  const dDays30 = [todayK, ...dWindow].slice(0, LOOKBACK_DAYS);
+  const steps = dDays30.map(k => dhikrTasks(state.dhikr[k] ?? {}, k));
+  const doneSteps = steps.reduce((a, ts) => a + ts.filter(x => x.done).length, 0);
+  const allSteps = steps.reduce((a, ts) => a + ts.length, 0);
+  const dPct30 = allSteps ? Math.round((doneSteps / allSteps) * 100) : 0;
+  const allDoneToday = dayDone(todayK);
   const open = tasks.filter(t => t.available && !t.done);
   const latestAfter = [...tasks].reverse().find(t => t.available)?.after;
   const nextLater = tasks.find(t => !t.available && !t.done);
@@ -245,24 +274,7 @@ export function DhikrCallCard() {
     );
   } else if (!nextLater) {
     card = (
-      <Card tone="done" eyebrow="Dhikr" title="Every dhikr complete today" body={`May Allah accept your remembrance. ${virtueOfTheDay(todayK)}`} footer={footer}>
-        {/* The completed set */}
-        <div className="mt-3 divide-y divide-border rounded-xl border border-border overflow-hidden">
-          {DHIKR_DEFS.map(def => {
-            const v = (state.dhikr[todayK] ?? {})[def.id];
-            const n = def.subItems?.length;
-            return (
-              <div key={def.id} className="flex items-center justify-between px-3 py-2">
-                <span className="text-[14px] font-medium text-foreground">{def.name}<span className="text-[12px] text-muted-fg font-normal"> · {def.prayerTime === 'all' ? 'after each prayer' : `after ${PRAYER_LABELS[def.prayerTime]}`}</span></span>
-                <span className="flex items-center gap-1 text-[12px] font-semibold text-primary">
-                  {n ? `${Array.isArray(v) ? v.filter(Boolean).length : v === true ? n : 0}/${n}` : ''}<LuCircleCheck className="text-[16px]" />
-                </span>
-              </div>
-            );
-          })}
-        </div>
-        <LookBack count={dhikrGaps.length} unit="dhikr" onOpen={() => setDhikrDay(dhikrGaps[0])} />
-      </Card>
+      <Card tone="done" eyebrow="Dhikr" title="Every dhikr complete today" body={`May Allah accept your remembrance. ${virtueOfTheDay(todayK)}`} footer={footer} />
     );
   } else {
     card = (
@@ -276,13 +288,27 @@ export function DhikrCallCard() {
   return (
     <>
       {card}
-      {dhikrDay && (
+      {dhikrDay === todayK && (
+        <TodayShelf
+          title="Today's dhikr"
+          stats={[
+            { value: String(dStreak), label: 'Day streak', sub: 'All dhikr' },
+            { value: `${dPct30}%`, label: 'Last 30 days', sub: 'of dhikr completed' },
+          ]}
+          showReview={allDoneToday && dhikrGaps.length > 0}
+          onReview={() => setDhikrDay(dhikrGaps[0])}
+          onClose={() => setDhikrDay(null)}
+        >
+          <DhikrChecklist dateKey={todayK} />
+        </TodayShelf>
+      )}
+      {dhikrDay && dhikrDay !== todayK && (
         <BottomSheet onClose={() => setDhikrDay(null)}>
           <div className="px-5 pb-5">
             <h2 className="text-xl font-bold text-foreground mb-0.5">
-              {dhikrDay === todayK ? "Today's dhikr" : dateFromKey(dhikrDay).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+              {dateFromKey(dhikrDay).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
             </h2>
-            <p className="text-[13px] text-muted-fg mb-4">{dhikrDay === todayK ? 'Tick off what you have recited.' : 'Fill in what you recited that day.'}</p>
+            <p className="text-[13px] text-muted-fg mb-4">Fill in what you recited that day.</p>
             <DhikrChecklist dateKey={dhikrDay} />
             <button onClick={() => setDhikrDay(null)} className="w-full mt-4 py-3 rounded-xl bg-secondary text-primary font-semibold text-[14px]">Done</button>
           </div>
