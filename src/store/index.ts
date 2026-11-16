@@ -100,6 +100,7 @@ export interface AppState {
     city:              string;
     darkMode:          'system' | 'light' | 'dark';
     theme?:            Theme; // color palette (missing = 'emerald', the original)
+    oled?:             boolean; // pure-black dark mode for OLED screens (missing = off)
     notifications:     boolean;
     prayerNotifs:      boolean;
     prayerStartNotifs?: boolean; // alert the moment each prayer time enters (missing = on)

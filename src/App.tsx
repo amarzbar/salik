@@ -46,6 +46,7 @@ export default function App() {
   useEffect(() => {
     const root = document.documentElement;
     const { darkMode } = state.settings;
+    const oled = !!state.settings.oled;
     const palette = state.settings.theme ?? 'emerald';
     root.setAttribute('data-theme', palette);
     // Page-background per palette/mode, kept in sync with the opaque status
@@ -59,7 +60,8 @@ export default function App() {
     };
     const setDark = (dark: boolean) => {
       root.classList.toggle('dark', dark);
-      const bg = (BG[palette] ?? BG.emerald)[dark ? 'dark' : 'light'];
+      root.classList.toggle('oled', dark && oled);
+      const bg = dark && oled ? '#000000' : (BG[palette] ?? BG.emerald)[dark ? 'dark' : 'light'];
       // While the launch splash is up, the status bar keeps the splash colour
       // (set in index.html); main.tsx applies this one when the splash goes.
       root.dataset.statusBar = bg;
@@ -82,7 +84,7 @@ export default function App() {
     const handler = (e: MediaQueryListEvent) => apply(e.matches);
     mq.addEventListener('change', handler);
     return () => mq.removeEventListener('change', handler);
-  }, [state.settings.darkMode, state.settings.theme]);
+  }, [state.settings.darkMode, state.settings.theme, state.settings.oled]);
 
   // One-time backfill: older installs using device geolocation stored only a
   // fixed tzOffsetHours, which can't follow DST. Capture the device's IANA

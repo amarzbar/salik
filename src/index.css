@@ -118,6 +118,22 @@
   --border: #43272B; --ring: #D1566E;
 }
 
+/* ─── Pure black (OLED) ────────────────────────────────────────────────────
+   Settings → Appearance → "Pure black". Applied as .oled on <html>, only
+   while dark mode is active. Works with every palette: only the neutral
+   surfaces change; each palette's primary/secondary/accent colors stay.
+   Must stay AFTER the palette blocks: .dark.oled and .dark[data-theme=…]
+   have equal specificity, so the later rule wins. */
+.dark.oled {
+  --background: #000000;
+  --card: #0B0B0B;
+  --muted: #141414;
+  --border: #232323;
+}
+.dark.oled body {
+  background-color: #000000;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

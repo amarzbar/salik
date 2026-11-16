@@ -65,6 +65,7 @@
       #splash img { width: 112px; height: 112px; border-radius: 26px; margin-top: -32px; }
       #splash .light { display: none; }
       :root[data-splash="light"] #splash { background: #F9F6F2; }
+      :root[data-splash="oled"] #splash { background: #000000; }
       :root[data-splash="light"] #splash .light { display: block; }
       :root[data-splash="light"] #splash .dark { display: none; }
       #splash.hide { opacity: 0; pointer-events: none; }
@@ -73,11 +74,12 @@
       // Pick the splash's mode before first paint: the app's Appearance
       // setting (saved under "murid") if it forces one, else the system's.
       (function () {
-        var mode;
-        try { mode = JSON.parse(localStorage.getItem('murid')).settings.darkMode; } catch (e) {}
+        var mode, oled;
+        try { var st = JSON.parse(localStorage.getItem('murid')).settings; mode = st.darkMode; oled = !!st.oled; } catch (e) {}
         var light = mode === 'light' || (mode !== 'dark' && !matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.dataset.splash = light ? 'light' : 'dark';
-        var bg = light ? '#F9F6F2' : '#1A1E22';
+        if (!light && oled) document.documentElement.dataset.splash = 'oled';
+        var bg = light ? '#F9F6F2' : oled ? '#000000' : '#1A1E22';
         document.querySelectorAll('meta[name="theme-color"]').forEach(function (m) { m.setAttribute('content', bg); });
       })();
     </script>
