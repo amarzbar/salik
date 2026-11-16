@@ -4,25 +4,17 @@ import { calcPrayerTimes, resolveLocation } from '../utils/prayerTimes';
 import { eventsForDay } from '../data/islamicEvents';
 import { reminderForDay } from '../data/reminders';
 import { computeBadges, longestRun } from '../data/badges';
-import { useAppStore, PRAYERS, PRAYER_LABELS, DHIKR_DEFS, todayKey, activeDate, hasPrayerStarted, canMarkDhikr, type PrayerStatus } from '../store';
+import { useAppStore, PRAYERS, todayKey, activeDate, type PrayerStatus, type PrayerName } from '../store';
 import ProgressRing from '../components/ProgressRing';
 import { LuFlame, LuSprout, LuPenLine } from 'react-icons/lu';
 import { observanceIcon } from '../components/categoryIcons';
 import VoiceNoteButton from '../components/VoiceNoteButton';
 import { usePrayerTap } from '../components/PrayerStatusSheet';
+import { PrayerCallCard, DhikrCallCard } from '../components/TodayCallToAction';
 import EventDetailModal from '../components/EventDetailModal';
 import type { IslamicEvent } from '../data/islamicEvents';
 import type { TabId } from '../App';
-import { heatSchemeOf, statusBg, statusText, statusDot } from '../utils/dayScore';
 
-// Labels only: colors come from the chosen scheme (utils/dayScore statusBg/statusText/statusDot).
-const STATUS_CONFIG: Record<PrayerStatus, { label: string }> = {
-  pending: { label: 'Tap' },
-  ontime: { label: 'On time' },
-  late: { label: 'Late' },
-  qada: { label: "Qada'" },
-  missed: { label: 'Missed' },
-};
 
 const KEPT: PrayerStatus[] = ['ontime', 'late', 'qada'];
 const isKept = (s: PrayerStatus | undefined) => !!s && KEPT.includes(s);
@@ -31,8 +23,7 @@ interface Props { onNavigate: (tab: TabId) => void; }
 
 export default function TodayScreen({ onNavigate }: Props) {
   const prayerTap = usePrayerTap();
-  const { state, setDhikr, setJournal, prayerStreak } = useAppStore();
-  const scheme = heatSchemeOf(state.settings); // badges follow the chosen color scheme
+  const { state, setJournal, prayerStreak } = useAppStore();
   const todayK = todayKey();
   const today = activeDate();
   const hijri = useMemo(() => todayHijri(activeDate()), []);
@@ -84,95 +75,6 @@ export default function TodayScreen({ onNavigate }: Props) {
           {hijri.day} {HIJRI_MONTHS[hijri.month - 1]}
         </h2>
         <p className="text-[14px] text-muted-fg">{hijri.year} AH &middot; {gregDate}</p>
-      </div>
-
-      {/* What you came to do comes first: today's prayers and dhikr, then the motivation below. */}
-      {/* Prayers card */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg">Prayers Today</h3>
-          <span className={`text-[12px] font-semibold tabular-nums ${completedPrayers === 5 ? 'text-primary' : 'text-muted-fg'}`}>
-            {completedPrayers}/5
-          </span>
-        </div>
-        <div className="divide-y divide-border">
-          {PRAYERS.map(prayer => {
-            const status = state.prayers[todayK]?.[prayer] ?? 'pending';
-            const cfg = STATUS_CONFIG[status];
-            const notYet = status === 'pending' && !hasPrayerStarted(todayK, prayer);
-            return (
-              <button
-                key={prayer}
-                onClick={() => prayerTap.onTap(todayK, prayer)}
-                disabled={notYet}
-                className="w-full flex items-center justify-between px-4 py-3 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${statusDot(status, scheme)}`} />
-                  <span className="text-[15px] font-medium text-foreground">{PRAYER_LABELS[prayer]}</span>
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <span className="text-[13px] text-muted-fg">{prayerTimeMap[prayer]}</span>
-                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${statusBg(status, scheme)} ${statusText(status, scheme)}`}>
-                    {notYet ? 'Not yet' : cfg.label}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <button
-          onClick={() => onNavigate('prayers')}
-          className="w-full flex items-center justify-center gap-1 py-3 text-[13px] text-primary font-medium border-t border-border"
-        >
-          View prayer history <Chevron small />
-        </button>
-      </div>
-
-      {/* Dhikr quick view */}
-      <div className="bg-card rounded-2xl border border-border overflow-hidden">
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
-          <h3 className="text-[12px] font-semibold uppercase tracking-widest text-muted-fg">Dhikr Today</h3>
-        </div>
-        <div className="divide-y divide-border">
-          {DHIKR_DEFS.slice(0, 4).map(def => {
-            const val = state.dhikr[todayK]?.[def.id];
-            const done = def.subItems && Array.isArray(val) ? (val as boolean[]).every(Boolean) : val === true;
-            const notYet = !def.subItems && !done && !canMarkDhikr(todayK, def.id);
-            return (
-              <button
-                key={def.id}
-                onClick={() => {
-                  if (def.subItems) { onNavigate('dhikr'); return; }
-                  setDhikr(todayK, def.id, !done);
-                }}
-                disabled={notYet}
-                className="w-full flex items-center gap-3 px-4 py-3 transition active:bg-muted disabled:opacity-50 disabled:active:bg-transparent"
-              >
-                <span className={[
-                  'w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                  done ? 'bg-primary border-primary' : 'border-border',
-                ].join(' ')}>
-                  {done && (
-                    <svg width="9" height="7" viewBox="0 0 9 7" fill="none">
-                      <path d="M1 3.5L3.5 6L8 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  )}
-                </span>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className={`text-[14px] font-medium ${done ? 'text-muted-fg line-through' : 'text-foreground'}`}>{def.name}</p>
-                  <p className="text-[12px] text-muted-fg capitalize">{def.prayerTime === 'all' ? 'After each prayer' : `After ${def.prayerTime}`}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-        <button
-          onClick={() => onNavigate('dhikr')}
-          className="w-full flex items-center justify-center gap-1 py-3 text-[13px] text-primary font-medium border-t border-border"
-        >
-          View all dhikr &amp; salawat <Chevron small />
-        </button>
       </div>
 
       {/* Active event banner */}
@@ -256,6 +158,11 @@ export default function TodayScreen({ onNavigate }: Props) {
         <p className="text-[15px] leading-relaxed text-foreground">“{reminder.text}”</p>
         <p className="text-[12px] text-muted-fg mt-2">— {reminder.source}</p>
       </div>
+
+      {/* Calls to action: the one next prayer and the one next dhikr, each a single tap.
+          The motivation (streak, achievements, reminder) stays above on purpose. */}
+      <PrayerCallCard times={prayerTimeMap as Record<PrayerName, string>} streak={currentStreak} onTap={prayerTap.onTap} />
+      <DhikrCallCard />
 
       {/* Slim journal */}
       {!journalOpen ? (
