@@ -22,6 +22,44 @@ export function dhikrRate(day: Partial<Record<DhikrId, boolean | boolean[]>> | u
   return done / DHIKR_DEFS.length;
 }
 
+// Calendar day score, counted in "prayer units": each of the five prayers is worth 1, and
+// each dhikr is worth a set share of a prayer. Multi-part dhikr (Salatut Ta'ziyah) earn their
+// worth proportionally, part by part. The day's score is points earned / points possible,
+// placed on the same heatmap scale as Prayer History.
+export const PRAYER_POINTS = 1;
+export const DHIKR_POINTS: Record<DhikrId, number> = {
+  wirdul_aam_fajr: 1,       // Wirdul Aam (morning) = one prayer
+  wirdul_aam_maghrib: 1,    // Wirdul Aam (evening) = one prayer
+  hasbunallah_dhuhr: 0.5,   // half a prayer
+  hizbul_bahr_asr: 0.5,     // half a prayer
+  salatut_taaziyah: 0.25,   // a quarter of a prayer, across its five parts
+};
+export const MAX_DAY_POINTS =
+  PRAYERS.length * PRAYER_POINTS + Object.values(DHIKR_POINTS).reduce((a, b) => a + b, 0); // 8.25
+
+/** Points earned on a day, in prayer units (0 – MAX_DAY_POINTS). */
+export function dayPoints(
+  prayers: Partial<Record<string, string>> | undefined,
+  dhikr: Partial<Record<DhikrId, boolean | boolean[]>> | undefined,
+): number {
+  let pts = PRAYERS.filter(p => KEPT.has(prayers?.[p] as string)).length * PRAYER_POINTS;
+  for (const def of DHIKR_DEFS) {
+    const v = dhikr?.[def.id];
+    const worth = DHIKR_POINTS[def.id] ?? 0;
+    if (Array.isArray(v)) pts += worth * (v.filter(Boolean).length / (def.subItems?.length || v.length || 1));
+    else if (v === true) pts += worth;
+  }
+  return pts;
+}
+
+/** Weighted day score: 0–1. */
+export function dayScore(
+  prayers: Partial<Record<string, string>> | undefined,
+  dhikr: Partial<Record<DhikrId, boolean | boolean[]>> | undefined,
+): number {
+  return dayPoints(prayers, dhikr) / MAX_DAY_POINTS;
+}
+
 /** Heatmap fill for a prayer rate (same scale as the Prayer History grid). */
 export function heatColor(rate: number): string {
   if (rate === 0) return 'bg-muted';

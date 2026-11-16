@@ -5,7 +5,7 @@ import EventDetailModal from '../components/EventDetailModal';
 import DhikrChecklist from '../components/DhikrChecklist';
 import { useAppStore, todayKey, activeDate, toDateKey, type CommunityEvent } from '../store';
 import { observanceIcon, CAL_CATEGORY_ICON } from '../components/categoryIcons';
-import { prayerRate, dhikrRate, heatColor } from '../utils/dayScore';
+import { prayerRate, dhikrRate, dayScore, heatColor } from '../utils/dayScore';
 
 const DOW = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 
@@ -111,13 +111,15 @@ export default function CalendarScreen() {
             const isTod = isToday(hDay);
             const gDate = new Date(greg.year, greg.month - 1, greg.day);
             const isFriday = gDate.getDay() === 5;
-            // Past days and today are shaded like the Prayer History heatmap (fill = prayers kept),
-            // with a gold bar along the top whose width is the share of the day's dhikr completed.
+            // Past days and today are shaded on the heatmap scale by one weighted score in
+            // "prayer units": prayers 1 each, Wirdul Aam 1, Hasbunallah and Hizbul Bahr ½,
+            // Salatut Ta'ziyah ¼ (see utils/dayScore).
             const dKey = toDateKey(gDate);
             const tracked = dKey <= todayK;
             const pRate = tracked ? prayerRate(state.prayers[dKey]) : 0;
             const dRate = tracked ? dhikrRate(state.dhikr[dKey]) : 0;
-            const filled = pRate > 0.5; // dark enough fill that text switches to white
+            const score = tracked ? dayScore(state.prayers[dKey], state.dhikr[dKey]) : 0;
+            const filled = score > 0.5; // dark enough fill that text switches to white
             const complete = pRate === 1 && dRate === 1;
 
             return (
@@ -127,14 +129,10 @@ export default function CalendarScreen() {
                 aria-label={`${hDay} ${HIJRI_MONTHS[viewMonth - 1]}${tracked ? `, ${Math.round(pRate * 5)} of 5 prayers, ${Math.round(dRate * 100)}% dhikr${complete ? ', complete day' : ''}` : ''}`}
                 className={[
                   'relative flex flex-col items-center justify-center rounded-xl transition-all py-1.5 min-h-[52px] overflow-hidden',
-                  tracked ? heatColor(pRate) : 'hover:bg-muted',
+                  tracked ? heatColor(score) : 'hover:bg-muted',
                   isSelected ? 'ring-2 ring-foreground ring-offset-2 ring-offset-background z-10' : isTod ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : '',
                 ].join(' ')}
               >
-                {/* Dhikr bar */}
-                {tracked && dRate > 0 && (
-                  <span className="absolute top-0 left-0 h-[4px] bg-accent rounded-r-full" style={{ width: `${Math.round(dRate * 100)}%` }} />
-                )}
                 {/* Hijri day */}
                 <span className={[
                   'text-[16px] font-semibold leading-none mb-0.5',
@@ -161,20 +159,16 @@ export default function CalendarScreen() {
           })}
         </div>
 
-        {/* Legend: fill = prayers, gold bar = dhikr */}
-        <div className="flex items-center justify-center gap-4 px-4 mt-3 flex-wrap">
+        {/* Legend: one weighted score per day (prayers count 3× as much as dhikr) */}
+        <div className="flex flex-col items-center gap-1 px-4 mt-3">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-fg">Prayers</span>
+            <span className="text-[11px] text-muted-fg">Less</span>
             {[0, 0.2, 0.6, 0.9, 1].map(r => (
               <span key={r} className={`w-3.5 h-3.5 rounded-sm ${heatColor(r)}`} />
             ))}
+            <span className="text-[11px] text-muted-fg">More</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-fg">Dhikr</span>
-            <span className="relative w-7 h-3.5 rounded-sm bg-muted overflow-hidden">
-              <span className="absolute top-0 left-0 h-[4px] w-full bg-accent" />
-            </span>
-          </div>
+          <span className="text-[11px] text-muted-fg">Prayers and dhikr together, each weighted by its worth</span>
         </div>
 
         {/* Selected day detail */}
