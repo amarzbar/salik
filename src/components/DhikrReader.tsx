@@ -7,6 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import workerUrl from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 import { pdfUrl, textById, DUA_AFTER_DHIKR, type DhikrTextId } from '../data/dhikrTexts';
+import { getOrFetch, getStored, fetchAndStore } from '../utils/offline';
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
@@ -33,10 +34,20 @@ export default function DhikrReader({ textId, onClose, onOpenText }: Props) {
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
+  // The text comes from the copy saved on this device when there is one; otherwise it's
+  // downloaded once and saved, so it opens offline from then on.
   useEffect(() => {
-    const task = pdfjs.getDocument(pdfUrl(textId));
-    task.promise.then(setDoc, () => setError(true));
-    return () => { task.destroy(); };
+    let cancelled = false;
+    let task: ReturnType<typeof pdfjs.getDocument> | null = null;
+    setDoc(null); setError(false);
+    getOrFetch(pdfUrl(textId))
+      .then(async ({ blob }) => {
+        if (cancelled) return;
+        task = pdfjs.getDocument({ data: new Uint8Array(await blob.arrayBuffer()) });
+        task.promise.then(d => { if (!cancelled) setDoc(d); }, () => { if (!cancelled) setError(true); });
+      })
+      .catch(() => { if (!cancelled) setError(true); });
+    return () => { cancelled = true; task?.destroy(); };
   }, [textId]);
 
   // Draw every page to a canvas at the reader's width (times the zoom), at
@@ -99,7 +110,9 @@ export default function DhikrReader({ textId, onClose, onOpenText }: Props) {
       <div className={`flex-1 overflow-auto px-3 pt-3 ${text.audio ? 'pb-3' : 'pb-safe'}`}>
         {error ? (
           <div className="text-center text-muted-fg text-[14px] py-16 px-6">
-            Couldn&apos;t load this text. Check your connection and try again.
+            {navigator.onLine
+              ? <>Couldn&apos;t load this text. Check your connection and try again.</>
+              : <>You&apos;re offline, and this text hasn&apos;t been saved on this device yet. Open it once while online and it will be.</>}
           </div>
         ) : !doc ? (
           <div className="text-center text-muted-fg text-[14px] py-16">Loading…</div>
@@ -148,12 +161,40 @@ function MiniPlayer({ src, title }: { src: string; title: string }) {
   const [loading, setLoading] = useState(false);
   const [time, setTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  // Offline: play the copy saved on this device when there is one. Otherwise the first play
+  // streams from the server while the whole file downloads and is saved in the background.
+  const [playSrc, setPlaySrc] = useState(src);
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState<number | null>(null); // 0–1 while saving
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let url: string | null = null;
+    let cancelled = false;
+    getStored(src).then(blob => {
+      if (cancelled || !blob) return;
+      url = URL.createObjectURL(blob);
+      setPlaySrc(url); setSaved(true);
+    });
+    return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
+  }, [src]);
+
+  function saveInBackground() {
+    if (saved || saving !== null) return;
+    setSaving(0);
+    fetchAndStore(src, p => setSaving(p))
+      .then(() => { setSaved(true); setSaving(null); })
+      .catch(() => setSaving(null)); // try again on the next play
+  }
 
   function toggle() {
     const a = audioRef.current;
     if (!a) return;
-    if (a.paused) { setLoading(true); a.play().catch(() => setLoading(false)); }
-    else a.pause();
+    if (a.paused) {
+      setFailed(false); setLoading(true);
+      a.play().catch(() => setLoading(false));
+      saveInBackground();
+    } else a.pause();
   }
 
   function seek(e: React.PointerEvent<HTMLDivElement>) {
@@ -174,7 +215,7 @@ function MiniPlayer({ src, title }: { src: string; title: string }) {
     <div className="bg-card border-t border-border" style={{ paddingBottom: 'max(calc(env(safe-area-inset-bottom, 0px) - 18px), 4px)' }}>
       <audio
         ref={audioRef}
-        src={src}
+        src={playSrc}
         preload="none"
         onPlaying={() => { setPlaying(true); setLoading(false); }}
         onPause={() => setPlaying(false)}
@@ -182,6 +223,7 @@ function MiniPlayer({ src, title }: { src: string; title: string }) {
         onWaiting={() => setLoading(true)}
         onTimeUpdate={e => setTime(e.currentTarget.currentTime)}
         onLoadedMetadata={e => setDuration(e.currentTarget.duration)}
+        onError={() => { setLoading(false); setPlaying(false); if (!saved) setFailed(true); }}
       />
       {/* Progress line: tall invisible hit area, 3px visible track */}
       <div className="relative h-4 -mt-2 cursor-pointer touch-none" onPointerDown={seek} aria-hidden="true">
@@ -197,8 +239,13 @@ function MiniPlayer({ src, title }: { src: string; title: string }) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-foreground truncate">{title}</p>
-          <p className="text-[12px] text-muted-fg tabular-nums">
-            {duration ? `${fmtTime(time)} / ${fmtTime(duration)}` : loading ? 'Loading…' : 'Recitation'}
+          <p className="text-[12px] text-muted-fg tabular-nums truncate">
+            {failed
+              ? (navigator.onLine ? "Couldn't load the recitation" : 'Not saved for offline yet')
+              : duration ? `${fmtTime(time)} / ${fmtTime(duration)}` : loading ? 'Loading…' : 'Recitation'}
+            {!failed && (saved
+              ? <span className="text-primary"> · Saved for offline</span>
+              : saving !== null ? <span> · Saving for offline… {Math.round(saving * 100)}%</span> : null)}
           </p>
         </div>
         <button

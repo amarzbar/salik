@@ -86,6 +86,47 @@ app.get('/api/texts/:id.pdf', async (req, res) => {
   }
 });
 
+// ── Dhikr audio (recitations from shaykhfaisal.com, cached on first play) ──
+// Same pattern as the texts: fetched from the Shaykh's site once, then served from the data
+// volume. Serving it from our own origin is what lets the app save a copy on the device for
+// offline listening (the site doesn't allow cross-origin downloads). sendFile handles Range
+// requests, so the player can still stream and seek before the copy is saved.
+const AUDIO_SOURCES = {
+  wirdul_aam: 'https://shaykhfaisal.com/wp-content/uploads/custom/AL-WIRDUL-AAM.mp3',
+  salat_taziyyah: 'https://shaykhfaisal.com/wp-content/uploads/2020/11/AL-SALAT-AL-TAAZIYYAH-DHIKR.mp3',
+  hasbunallah: 'https://shaykhfaisal.com/wp-content/uploads/custom/HASBUNALLAH.mp3',
+  hizbul_bahr: 'https://shaykhfaisal.com/wp-content/uploads/custom/HizbulBahar.mp3',
+  latifiyyah: 'https://shaykhfaisal.com/wp-content/uploads/custom/AL-LATIFIYYAH.mp3',
+  mashishiyyah: 'https://shaykhfaisal.com/wp-content/uploads/2021/01/AL-SALAT-AL-MASHISHIYYAH-03.mp3',
+};
+const AUDIO_DIR = path.join(store.DATA_DIR, 'audio');
+const audioDownloads = new Map(); // id -> in-flight download, so parallel requests share one fetch
+
+app.get('/api/audio/:id.mp3', async (req, res) => {
+  const src = AUDIO_SOURCES[req.params.id];
+  if (!src) return res.status(404).end();
+  const file = path.join(AUDIO_DIR, `${req.params.id}.mp3`);
+  try {
+    if (!fs.existsSync(file)) {
+      if (!audioDownloads.has(req.params.id)) {
+        audioDownloads.set(req.params.id, (async () => {
+          const r = await fetch(src);
+          if (!r.ok) throw new Error(`source returned ${r.status}`);
+          fs.mkdirSync(AUDIO_DIR, { recursive: true });
+          const tmp = `${file}.part`;
+          fs.writeFileSync(tmp, Buffer.from(await r.arrayBuffer()));
+          fs.renameSync(tmp, file); // atomic: never serve a half-written file
+        })().finally(() => audioDownloads.delete(req.params.id)));
+      }
+      await audioDownloads.get(req.params.id);
+    }
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.type('audio/mpeg').sendFile(file);
+  } catch (err) {
+    res.status(502).json({ error: 'could not fetch audio' });
+  }
+});
+
 // ── Voice notes: speech-to-text via the local Whisper service ───────
 // The browser records with MediaRecorder (audio/mp4 on iOS, audio/webm
 // elsewhere) and posts the raw bytes here; we forward them to the

@@ -1,8 +1,22 @@
-const CACHE = 'murid-v17'; // bumped: lock prayers/dhikr until their time
+const CACHE = 'murid-v18'; // bumped: dhikr texts & recitations saved on the device (utils/offline)
 const PRECACHE = ['/', '/index.html', '/manifest.json', '/icon-512.png'];
 
+// Also precache the app's own hashed bundle (the JS/CSS index.html points at). The very first
+// page load happens before this worker controls the page, so without this the main bundle was
+// never cached and the installed app couldn't start offline. Hashed names change every deploy,
+// hence reading them from index.html rather than listing them here.
+async function precacheShell() {
+  const cache = await caches.open(CACHE);
+  await cache.addAll(PRECACHE);
+  try {
+    const html = await (await fetch('/index.html', { cache: 'no-store' })).text();
+    const assets = [...new Set([...html.matchAll(/(?:src|href)="(\/assets\/[^"]+)"/g)].map(m => m[1]))];
+    await cache.addAll(assets);
+  } catch { /* offline during install: the fetch handler fills the cache later */ }
+}
+
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)));
+  e.waitUntil(precacheShell());
   self.skipWaiting();
 });
 
@@ -26,17 +40,24 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
+  // Recitations are fetched in byte ranges (206), which this cache can't store; the page saves
+  // full copies itself (utils/offline), so leave audio to the network/page.
+  if (new URL(e.request.url).pathname.startsWith('/api/audio/')) return;
   e.respondWith(
     caches.match(e.request).then(cached => {
       const network = fetch(e.request).then(res => {
-        if (res.ok) {
+        if (res.status === 200) { // only whole responses; a 206 range can't be cached
           const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
+          caches.open(CACHE).then(c => c.put(e.request, clone)).catch(() => {});
         }
         return res;
       });
-      return cached || network.catch(() => {
-        if (e.request.destination === 'document') return caches.match('/index.html');
+      if (cached) { network.catch(() => {}); return cached; }
+      // Offline and not cached: the app shell for page loads, otherwise a proper network error
+      // (resolving with nothing makes the browser report a broken service worker instead).
+      return network.catch(async () => {
+        if (e.request.destination === 'document') return (await caches.match('/index.html')) || Response.error();
+        return Response.error();
       });
     })
   );
